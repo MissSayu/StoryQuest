@@ -1,0 +1,72 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "poppins", sans-serif;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 20px;
+}
+
+.header-button {
+    background-color: rgba(255, 168, 203, 0.41);
+    padding: 12px 24px;
+    border: 1px solid black;
+    border-radius: 20px;
+    min-width: 150px;
+    flex: 1;
+    max-width: 200px;
+}
+
+.cta-btn {
+    background-color: rgba(255, 168, 203, 0.41);
+    width: 300px;
+    height: 100px;
+    border: 1px solid black;
+    border-radius: 25px;
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+.intro-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 40px;
+    gap: 50px;
+}
+
+.intro-text {
+    flex: 1;
+    max-width: 700px;
+    text-align: left;
+}
+
+.intro-books {
+    flex: 1;
+    text-align: center;
+}
+
+
+.book-list {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px;
+
+}
+
+.book {
+    width: 300px;
+    height: 400px;
+    border-radius: 10px;
+}

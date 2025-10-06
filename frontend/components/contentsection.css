@@ -1,0 +1,85 @@
+.content-section {
+    background: rgba(201, 28, 213, 0.19);
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+}
+
+
+
+.content-grid {
+    display: flex;
+    gap: 15px;
+    flex-wrap: nowrap;
+}
+
+.content-item {
+    width: 150px;
+    min-height: 270px;
+    background: rgba(255,192,203,0.2);
+    border-radius: 15px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-item img.book {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+.content-item p {
+    text-align: center;
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    min-height: 40px;
+    overflow-wrap: break-word;
+}
+
+.content-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.scroll-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    background: pink;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.scroll-btn:hover {
+    background: #ff9ecf;
+}

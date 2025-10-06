@@ -1,0 +1,93 @@
+.dropdown > button {
+    width: 130px;
+    padding: 12px 20px;
+    border: 1px solid black;
+    border-radius: 20px;
+    background-color: rgba(255, 168, 203, 0.41);
+    color: #000;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.genre-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 150px;
+    background-color: rgba(255, 168, 203, 0.95);
+    border: 2px solid black;
+    border-radius: 12px;
+    z-index: 1000;
+    padding: 4px 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+
+.genre-dropdown-menu .genre-dropdown-item,
+.genre-dropdown-menu a {
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    text-align: center;
+    color: black;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.2s;
+    box-sizing: border-box;
+}
+
+.genre-dropdown-item:hover,
+.genre-dropdown-item a:hover {
+    background: #f2f2f2;
+}
+
+
+.genre-dropdown-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Zorgt dat textarea en buttons naast elkaar staan */
+.story-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+
+.story-row textarea {
+    flex: 1;
+    height: 400px;
+    max-width: 600px;
+    resize: vertical;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+}
+
+.story-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+
+.story-actions .button {
+    width: 260px;
+    text-align: center;
+}
+
+
+.story-actions .file-upload span {
+    font-size: 0.9rem;
+    color: #555;
+}
+
+

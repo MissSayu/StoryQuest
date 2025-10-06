@@ -1,0 +1,56 @@
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: black;
+    font-weight: 500;
+    padding: 10px 15px;
+    border-radius: 15px;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.sidebar-menu a:hover {
+    background: #f2f2f2;
+    color: #873bc9;
+}
+
+.menu-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: 10px;
+    vertical-align: middle;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-menu a:hover .menu-icon {
+    transform: scale(1.1);
+}
+
+.profile-info {
+    background: rgba(201, 28, 213, 0.19);
+    padding: 15px;
+    border-radius: 20px;
+    text-align: center;
+}
+
+.profile-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+}
+
+.sidebar-menu {
+    background: rgba(201, 28, 213, 0.19);
+    border-radius: 20px;
+    padding: 15px;
+    margin-top: 25px;
+}

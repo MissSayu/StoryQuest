@@ -1,0 +1,24 @@
+.searchbar {
+    position: relative;
+    display: flex;
+    width: 100%;
+    max-width: 600px;
+}
+
+.searchbar input {
+    width: 5000px;
+    padding: 10px 40px 10px 15px;
+    border-radius: 10px;
+    border: 1px solid black;
+    background: rgba(255, 168, 203, 0.41);
+}
+
+.searchbar .search-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
