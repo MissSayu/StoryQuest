@@ -8,7 +8,7 @@ import book1 from "../assets/book-cover-placeholder.png";
 import book2 from "../assets/book-cover-placeholder.png";
 import book3 from "../assets/book-cover-placeholder.png";
 
-function HomepageUser({ user, logout, isMod = true }) {
+function HomepageUser({ user, logout, isMod }) {
     const navigate = useNavigate();
 
     function handleSearch(query) {

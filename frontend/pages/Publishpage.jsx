@@ -7,35 +7,62 @@ import Button from "../components/button.jsx";
 import GenreDropdown from "../components/genredropdown.jsx";
 import "../styles/publish.css";
 
-export default function PublishPage({ user, logout, isMod = false }) {
+export default function PublishPage({ user, logout, isMod }) {
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");
     const [cover, setCover] = useState(null);
     const [file, setFile] = useState(null);
-    const [type, setType] = useState("story"); // 'story' of 'comic'
+    const [type, setType] = useState("story"); // 'story' or 'comic'
     const [storyContent, setStoryContent] = useState("");
 
     const handleCoverUpload = (e) => {
         if (e.target.files[0]) setCover(e.target.files[0]);
     };
+
     const handleFileUpload = (e) => {
         if (e.target.files[0]) setFile(e.target.files[0]);
     };
 
-    const handlePublish = () => {
+    const handlePublish = async () => {
         if (!title || !genre || (type === "story" && !storyContent) || (type === "comic" && !file)) {
             alert("Vul alle verplichte velden in!");
             return;
         }
 
-        console.log({ title, genre, type, cover, file, storyContent });
-        alert("Je verhaal/comic is gepubliceerd!");
+        try {
+            // Build the story data
+            const storyData = {
+                title,
+                description: storyContent || "", // description for story or comic
+                type, // 'story' or 'comic'
+            };
 
-        setTitle("");
-        setGenre("");
-        setCover(null);
-        setFile(null);
-        setStoryContent("");
+            // Send POST request
+            const response = await fetch(`http://localhost:8081/api/stories?userId=${user.id}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(storyData),
+            });
+
+            if (!response.ok) throw new Error("Failed to publish story");
+
+            const createdStory = await response.json();
+            console.log("Published story:", createdStory);
+
+            alert("Je verhaal/comic is gepubliceerd!");
+
+            // Reset form
+            setTitle("");
+            setGenre("");
+            setCover(null);
+            setFile(null);
+            setStoryContent("");
+        } catch (err) {
+            console.error(err);
+            alert("Er is iets misgegaan bij het publiceren!");
+        }
     };
 
     return (
@@ -43,11 +70,13 @@ export default function PublishPage({ user, logout, isMod = false }) {
             <header className="header-user">
                 <div className="header-left"><Logo /></div>
                 <div className="header-center"><Navbar /></div>
-                <div className="header-right"><AvatarMenu user={user} isMod={isMod} logout={logout} /></div>
+                <div className="header-right">
+                    <AvatarMenu user={user} logout={logout} isMod={isMod} />
+                </div>
             </header>
 
             <div className="publish-page">
-                <ProfileSidebar username={user?.username || "SayuNeko"} />
+                <ProfileSidebar user={user} />
 
                 <main className="publish-main">
                     <section className="publish-section">
@@ -102,7 +131,6 @@ export default function PublishPage({ user, logout, isMod = false }) {
                                 </div>
 
                                 <div className="story-actions">
-                                    {/* Cover upload */}
                                     <input
                                         id="coverUploadStory"
                                         type="file"
@@ -121,7 +149,6 @@ export default function PublishPage({ user, logout, isMod = false }) {
                                         />
                                     )}
 
-                                    {/* Publish */}
                                     <Button onClick={handlePublish} className="publish-button">
                                         Publish
                                     </Button>
@@ -132,12 +159,11 @@ export default function PublishPage({ user, logout, isMod = false }) {
                         {/* Comic Section */}
                         {type === "comic" && (
                             <div className="story-row">
-                                {/* Left: Upload Comic */}
                                 <div className="action-column">
                                     <input
                                         id="comicUpload"
                                         type="file"
-                                        accept=".pdf,.cbz,.cbr"
+                                        accept=".pdf,.cbz,.cbr, .png, .jpg"
                                         style={{ display: "none" }}
                                         onChange={handleFileUpload}
                                     />
@@ -147,7 +173,6 @@ export default function PublishPage({ user, logout, isMod = false }) {
                                     {file && <span>{file.name}</span>}
                                 </div>
 
-                                {/* Right: Cover + Publish */}
                                 <div className="action-column">
                                     <input
                                         id="coverUploadComic"

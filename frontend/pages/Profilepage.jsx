@@ -1,30 +1,25 @@
-// ProfilePage.jsx
 import React from "react";
 import { useParams } from "react-router-dom";
 import "../styles/profile.css";
-
 import Logo from "../components/Logo";
 import Navbar from "../components/Navbar";
 import AvatarMenu from "../components/Avatar";
 import ProfileSidebar from "../components/sidemenu.jsx";
 import StatsCard from "../components/statscard.jsx";
 import ContentSection from "../components/ContentSection";
-import Button from "../components/button.jsx";
-import SearchBar from "../components/SearchBar";
-
-// Boekcovers
 import book1 from "../assets/book-cover-placeholder.png";
 import book2 from "../assets/book-cover-placeholder.png";
 import book3 from "../assets/book-cover-placeholder.png";
 
-export default function ProfilePage({ user, logout, isMod = false }) {
+
+
+export default function ProfilePage({ user, logout, isMod }) {
     const { username } = useParams();
 
     function handleSearch(query) {
         console.log("Zoekterm:", query);
     }
 
-    // Items voor ContentSection
     const stories = [
         { title: "Mystic Adventures", cover: book1 },
         { title: "Romance in the City", cover: book2 },
@@ -50,18 +45,18 @@ export default function ProfilePage({ user, logout, isMod = false }) {
                 </div>
 
                 <div className="header-right">
-                    <AvatarMenu user={user} isMod={isMod} logout={logout}/>
+                    <AvatarMenu user={user?.username} logout={logout} isMod={isMod} />
                 </div>
             </header>
 
             <div className="profile-page">
-                <ProfileSidebar username="SayuNeko"/>
+                <ProfileSidebar user={user} />
 
                 <main className="profile-main">
                     <div className="profile-stats">
-                        <StatsCard type="stories" value="6"/>
-                        <StatsCard type="followers" value="120"/>
-                        <StatsCard type="following" value="45"/>
+                        <StatsCard type="stories" value="6 "/>
+                        <StatsCard type="followers" value="120 "/>
+                        <StatsCard type="following" value="45 "/>
                     </div>
 
                     <ContentSection title="Verhalen" items={stories} onSearch={handleSearch}/>

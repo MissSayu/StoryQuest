@@ -52,7 +52,7 @@
     flex-shrink: 0;
 }
 
-/* Zorgt dat textarea en buttons naast elkaar staan */
+
 .story-row {
     display: flex;
     gap: 20px;

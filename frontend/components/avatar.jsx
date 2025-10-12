@@ -1,23 +1,26 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import avatar from "../assets/avatar-placeholder.png";
+import avatarPlaceholder from "../assets/avatar-placeholder.png";
 import "./avatar.css";
 
-export default function AvatarMenu({ user, isMod = false, logout }) {
+export default function AvatarMenu({ user, logout }) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const navigate = useNavigate();
+    const isMod = user?.isMod || false;
 
-    function handleLogout() {
+    const handleLogout = () => {
         if (logout) logout();
         navigate("/");
-    }
+    };
 
     return (
         <div className="profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
-            <img src={avatar} alt="Profielfoto" className="avatar" />
+            {/* Avatar dynamisch */}
+            <img src={user?.avatar || avatarPlaceholder} alt="Profielfoto" className="avatar" />
+
             {dropdownOpen && (
                 <div className="dropdown-menu">
-                    <Link to={`/profile/${user}`} className="dropdown-item">
+                    <Link to={`/profile/${user?.username}`} className="dropdown-item">
                         Profiel
                     </Link>
                     <button className="dropdown-item">Instellingen</button>
