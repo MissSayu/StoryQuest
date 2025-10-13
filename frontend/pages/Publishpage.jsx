@@ -11,8 +11,8 @@ export default function PublishPage({ user, logout, isMod }) {
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");
     const [cover, setCover] = useState(null);
-    const [file, setFile] = useState(null);
-    const [type, setType] = useState("story"); // 'story' or 'comic'
+    const [file, setFile] = useState(null); // comic file
+    const [type, setType] = useState("story"); // story or comic
     const [storyContent, setStoryContent] = useState("");
 
     const handleCoverUpload = (e) => {
@@ -30,30 +30,26 @@ export default function PublishPage({ user, logout, isMod }) {
         }
 
         try {
-            // Build the story data
-            const storyData = {
-                title,
-                description: storyContent || "", // description for story or comic
-                type, // 'story' or 'comic'
-            };
+            const formData = new FormData();
+            formData.append("title", title);
+            formData.append("description", storyContent || "");
+            formData.append("type", type);
+            formData.append("genre", genre);
 
-            // Send POST request
+            if (cover) formData.append("coverImage", cover);
+            if (type === "comic" && file) formData.append("comicFile", file);
+
             const response = await fetch(`http://localhost:8081/api/stories?userId=${user.id}`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(storyData),
+                body: formData,
             });
 
             if (!response.ok) throw new Error("Failed to publish story");
 
             const createdStory = await response.json();
             console.log("Published story:", createdStory);
-
             alert("Je verhaal/comic is gepubliceerd!");
 
-            // Reset form
             setTitle("");
             setGenre("");
             setCover(null);
@@ -82,7 +78,7 @@ export default function PublishPage({ user, logout, isMod }) {
                     <section className="publish-section">
                         <h2>Publiceer een nieuw {type === "story" ? "verhaal" : "comic"}</h2>
 
-                        {/* Type selector */}
+                        {/* Type Selector */}
                         <div className="row type-selector">
                             <label>
                                 <input
@@ -121,79 +117,86 @@ export default function PublishPage({ user, logout, isMod }) {
 
                         {/* Story Section */}
                         {type === "story" && (
-                            <div className="story-row">
-                                <div className="story-input">
-                                    <textarea
-                                        placeholder="Schrijf hier je verhaal..."
-                                        value={storyContent}
-                                        onChange={(e) => setStoryContent(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="story-actions">
-                                    <input
-                                        id="coverUploadStory"
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onChange={handleCoverUpload}
-                                    />
-                                    <Button asLabel htmlFor="coverUploadStory" className="cover-button">
-                                        Upload Cover
-                                    </Button>
-                                    {cover && (
-                                        <img
-                                            src={URL.createObjectURL(cover)}
-                                            alt="Cover preview"
-                                            className="cover-preview-large"
+                            <div className="story-section">
+                                <div className="story-content-row">
+                                    {/* Textarea */}
+                                    <div className="story-input-row">
+                                        <textarea
+                                            className="story-textarea"
+                                            placeholder="Schrijf hier je verhaal..."
+                                            value={storyContent}
+                                            onChange={(e) => setStoryContent(e.target.value)}
                                         />
-                                    )}
+                                    </div>
 
-                                    <Button onClick={handlePublish} className="publish-button">
-                                        Publish
-                                    </Button>
+                                    {/* Actions */}
+                                    <div className="story-actions-column">
+                                        <input
+                                            id="coverUploadStory"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleCoverUpload}
+                                        />
+                                        <Button asLabel htmlFor="coverUploadStory" className="cover-button">
+                                            Upload Cover
+                                        </Button>
+
+                                        {cover && (
+                                            <img
+                                                src={URL.createObjectURL(cover)}
+                                                alt="Cover preview"
+                                                className="cover-preview-large"
+                                            />
+                                        )}
+
+                                        <Button onClick={handlePublish} className="publish-button">
+                                            Publish Story
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {/* Comic Section */}
                         {type === "comic" && (
-                            <div className="story-row">
-                                <div className="action-column">
-                                    <input
-                                        id="comicUpload"
-                                        type="file"
-                                        accept=".pdf,.cbz,.cbr, .png, .jpg"
-                                        style={{ display: "none" }}
-                                        onChange={handleFileUpload}
-                                    />
-                                    <Button asLabel htmlFor="comicUpload" className="cover-button">
-                                        Upload Comic
-                                    </Button>
-                                    {file && <span>{file.name}</span>}
+                            <div className="comic-section">
+                                <div className="comic-content-row">
+                                    <div className="comic-action-column">
+                                        <input
+                                            id="comicUpload"
+                                            type="file"
+                                            accept=".pdf,.cbz,.cbr,.png,.jpg"
+                                            onChange={handleFileUpload}
+                                        />
+                                        <Button asLabel htmlFor="comicUpload" className="cover-button">
+                                            Upload Comic File
+                                        </Button>
+                                        {file && <span className="file-name">{file.name}</span>}
+                                    </div>
+
+                                    <div className="comic-action-column">
+                                        <input
+                                            id="coverUploadComic"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleCoverUpload}
+                                        />
+                                        <Button asLabel htmlFor="coverUploadComic" className="cover-button">
+                                            Upload Cover
+                                        </Button>
+                                        {cover && (
+                                            <img
+                                                src={URL.createObjectURL(cover)}
+                                                alt="Cover preview"
+                                                className="cover-preview-large"
+                                            />
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="action-column">
-                                    <input
-                                        id="coverUploadComic"
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: "none" }}
-                                        onChange={handleCoverUpload}
-                                    />
-                                    <Button asLabel htmlFor="coverUploadComic" className="cover-button">
-                                        Upload Cover
-                                    </Button>
-                                    {cover && (
-                                        <img
-                                            src={URL.createObjectURL(cover)}
-                                            alt="Cover preview"
-                                            className="cover-preview-large"
-                                        />
-                                    )}
-
+                                <div className="publish-button-row">
                                     <Button onClick={handlePublish} className="publish-button">
-                                        Publish
+                                        Publish Comic
                                     </Button>
                                 </div>
                             </div>

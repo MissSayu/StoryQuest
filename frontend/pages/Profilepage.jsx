@@ -45,7 +45,7 @@ export default function ProfilePage({ user, logout, isMod }) {
                 </div>
 
                 <div className="header-right">
-                    <AvatarMenu user={user?.username} logout={logout} isMod={isMod} />
+                    <AvatarMenu user={user=user} logout={logout} isMod={isMod} />
                 </div>
             </header>
 

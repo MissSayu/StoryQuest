@@ -13,7 +13,6 @@ function ProfileSidebar({ user }) {
     useEffect(() => {
         if (!user) return;
 
-        console.log("Fetching user:", user);
 
         const fetchUserData = async () => {
             try {
