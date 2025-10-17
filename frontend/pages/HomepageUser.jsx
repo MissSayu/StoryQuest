@@ -33,7 +33,7 @@ function HomepageUser({ user, logout, isMod }) {
 
             <main>
                 <section className="welcome-section">
-                    <h1>Welkom terug, {user}!</h1>
+                    <h1>Welkom terug, {user ? user.username: "..."}!</h1>
                     <p>Hier zijn enkele verhalen die we voor jou aanraden:</p>
 
                     <div className="recommended-books">

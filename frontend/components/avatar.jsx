@@ -1,34 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import avatarPlaceholder from "../assets/avatar-placeholder.png";
 import "./avatar.css";
 
 export default function AvatarMenu({ user, logout }) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [userData, setUserData] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if (!user) return;
+    if (!user) return <p>Loading...</p>; // fallback while user is null
 
-        const fetchUserData = async () => {
-            try {
-                const res = await fetch(`http://localhost:8081/api/users/username/${user}`);
-                if (!res.ok) throw new Error(`User not found: ${res.status}`);
-                const data = await res.json();
-                setUserData(data);
-            } catch (err) {
-                console.error("Failed to fetch user:", err);
-                setUserData(null);
-            }
-        };
-
-        fetchUserData();
-    }, [user]);
-
-    const username = userData?.username || user || "Onbekende gebruiker";
-    const role = userData?.role || "USER";
-    const profileImg = userData?.avatarUrl ? userData.avatarUrl : avatarPlaceholder;
+    const username = user.username || "Onbekende gebruiker";
+    const role = user.role || "USER";
+    const profileImg = user.avatarUrl || avatarPlaceholder;
     const isMod = role === "MOD";
 
     const handleLogout = () => {

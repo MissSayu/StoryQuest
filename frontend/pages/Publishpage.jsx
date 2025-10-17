@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from "../components/Logo";
 import Navbar from "../components/Navbar";
 import AvatarMenu from "../components/Avatar";
@@ -7,13 +7,50 @@ import Button from "../components/button.jsx";
 import GenreDropdown from "../components/genredropdown.jsx";
 import "../styles/publish.css";
 
-export default function PublishPage({ user, logout, isMod }) {
+export default function PublishPage({ user: initialUser, logout, isMod }) {
+    const [user, setUser] = useState(
+        typeof initialUser === "object" ? initialUser : null
+    );
     const [title, setTitle] = useState("");
     const [genre, setGenre] = useState("");
     const [cover, setCover] = useState(null);
-    const [file, setFile] = useState(null); // comic file
-    const [type, setType] = useState("story"); // story or comic
+    const [coverPreview, setCoverPreview] = useState(null);
+    const [file, setFile] = useState(null);
+    const [type, setType] = useState("story");
     const [storyContent, setStoryContent] = useState("");
+
+    // Fetch full user object if we only got a username
+    useEffect(() => {
+        if (user || !initialUser || typeof initialUser === "object") return;
+
+        const fetchUserData = async () => {
+            try {
+                const res = await fetch(
+                    `http://localhost:8081/api/users/username/${initialUser}`
+                );
+                if (!res.ok) throw new Error(`User not found: ${res.status}`);
+                const data = await res.json();
+                setUser(data);
+            } catch (err) {
+                console.error("Failed to fetch user:", err);
+            }
+        };
+
+        fetchUserData();
+    }, [initialUser, user]);
+
+    // Generate cover preview and clean up previous object URL
+    useEffect(() => {
+        if (!cover) {
+            setCoverPreview(null);
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(cover);
+        setCoverPreview(objectUrl);
+
+        return () => URL.revokeObjectURL(objectUrl); // prevent memory leaks
+    }, [cover]);
 
     const handleCoverUpload = (e) => {
         if (e.target.files[0]) setCover(e.target.files[0]);
@@ -24,7 +61,17 @@ export default function PublishPage({ user, logout, isMod }) {
     };
 
     const handlePublish = async () => {
-        if (!title || !genre || (type === "story" && !storyContent) || (type === "comic" && !file)) {
+        if (!user) {
+            alert("User data not loaded yet!");
+            return;
+        }
+
+        if (
+            !title ||
+            !genre ||
+            (type === "story" && !storyContent) ||
+            (type === "comic" && !file)
+        ) {
             alert("Vul alle verplichte velden in!");
             return;
         }
@@ -35,14 +82,13 @@ export default function PublishPage({ user, logout, isMod }) {
             formData.append("description", storyContent || "");
             formData.append("type", type);
             formData.append("genre", genre);
-
             if (cover) formData.append("coverImage", cover);
             if (type === "comic" && file) formData.append("comicFile", file);
 
-            const response = await fetch(`http://localhost:8081/api/stories?userId=${user.id}`, {
-                method: "POST",
-                body: formData,
-            });
+            const response = await fetch(
+                `http://localhost:8081/api/stories?userId=${user.id}`,
+                { method: "POST", body: formData }
+            );
 
             if (!response.ok) throw new Error("Failed to publish story");
 
@@ -50,6 +96,7 @@ export default function PublishPage({ user, logout, isMod }) {
             console.log("Published story:", createdStory);
             alert("Je verhaal/comic is gepubliceerd!");
 
+            // Reset form
             setTitle("");
             setGenre("");
             setCover(null);
@@ -60,6 +107,8 @@ export default function PublishPage({ user, logout, isMod }) {
             alert("Er is iets misgegaan bij het publiceren!");
         }
     };
+
+    if (!user) return <p>Loading user...</p>;
 
     return (
         <>
@@ -76,7 +125,9 @@ export default function PublishPage({ user, logout, isMod }) {
 
                 <main className="publish-main">
                     <section className="publish-section">
-                        <h2>Publiceer een nieuw {type === "story" ? "verhaal" : "comic"}</h2>
+                        <h2>
+                            Publiceer een nieuw {type === "story" ? "verhaal" : "comic"}
+                        </h2>
 
                         {/* Type Selector */}
                         <div className="row type-selector">
@@ -86,7 +137,8 @@ export default function PublishPage({ user, logout, isMod }) {
                                     value="story"
                                     checked={type === "story"}
                                     onChange={() => setType("story")}
-                                /> Verhaal
+                                />{" "}
+                                Verhaal
                             </label>
                             <label>
                                 <input
@@ -94,7 +146,8 @@ export default function PublishPage({ user, logout, isMod }) {
                                     value="comic"
                                     checked={type === "comic"}
                                     onChange={() => setType("comic")}
-                                /> Comic
+                                />{" "}
+                                Comic
                             </label>
                         </div>
 
@@ -119,17 +172,15 @@ export default function PublishPage({ user, logout, isMod }) {
                         {type === "story" && (
                             <div className="story-section">
                                 <div className="story-content-row">
-                                    {/* Textarea */}
                                     <div className="story-input-row">
-                                        <textarea
-                                            className="story-textarea"
-                                            placeholder="Schrijf hier je verhaal..."
-                                            value={storyContent}
-                                            onChange={(e) => setStoryContent(e.target.value)}
-                                        />
+                    <textarea
+                        className="story-textarea"
+                        placeholder="Schrijf hier je verhaal..."
+                        value={storyContent}
+                        onChange={(e) => setStoryContent(e.target.value)}
+                    />
                                     </div>
 
-                                    {/* Actions */}
                                     <div className="story-actions-column">
                                         <input
                                             id="coverUploadStory"
@@ -141,9 +192,9 @@ export default function PublishPage({ user, logout, isMod }) {
                                             Upload Cover
                                         </Button>
 
-                                        {cover && (
+                                        {coverPreview && (
                                             <img
-                                                src={URL.createObjectURL(cover)}
+                                                src={coverPreview}
                                                 alt="Cover preview"
                                                 className="cover-preview-large"
                                             />
@@ -184,9 +235,9 @@ export default function PublishPage({ user, logout, isMod }) {
                                         <Button asLabel htmlFor="coverUploadComic" className="cover-button">
                                             Upload Cover
                                         </Button>
-                                        {cover && (
+                                        {coverPreview && (
                                             <img
-                                                src={URL.createObjectURL(cover)}
+                                                src={coverPreview}
                                                 alt="Cover preview"
                                                 className="cover-preview-large"
                                             />

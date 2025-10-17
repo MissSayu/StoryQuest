@@ -1,79 +1,108 @@
-import React, { useEffect, useState } from "react";
-import ProfileSidebar from "../components/sidemenu.jsx";
-import ContentSection from "../components/contentsection.jsx";
-import Logo from "../components/Logo";
-import Navbar from "../components/Navbar";
-import AvatarMenu from "../components/Avatar";
-import "../styles/profile.css";
+import React, { useEffect, useState, useRef } from "react";
+import Button from "./button.jsx";
+import SearchBar from "./SearchBar";
+import "./contentsection.css";
 
-export default function ProfilePage({ user, logout, isMod }) {
-    const [stories, setStories] = useState([]);
-    const [comics, setComics] = useState([]);
+export default function ContentSection({ title, userId: propUserId, username, type, onSearch }) {
+    const scrollRef = useRef(null);
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [userId, setUserId] = useState(propUserId || null);
 
-    // Fetch user's stories & comics
     useEffect(() => {
-        const fetchContent = async () => {
-            try {
-                const res = await fetch(`http://localhost:8081/api/stories?userId=${user.id}`);
-                if (!res.ok) throw new Error("Failed to fetch stories");
-                const data = await res.json();
+        if (!userId) {
+            console.log("⏳ Waiting for userId...");
+            return;
+        }
 
-                // Separate stories and comics
-                setStories(data.filter(item => item.type === "story"));
-                setComics(data.filter(item => item.type === "comic"));
+        const fetchStories = async () => {
+            try {
+                setLoading(true);
+                console.log("📡 Fetching all stories...");
+                const res = await fetch(`http://localhost:8081/api/stories/username/${username}`);
+
+                if (!res.ok) throw new Error(`Failed to fetch stories (${res.status})`);
+
+                // Get raw text first
+                const text = await res.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    console.error("❌ Failed to parse JSON. Raw response:", text);
+                    throw err;
+                }
+
+                console.log("✅ All stories fetched:", data);
+
+                const filtered = data.filter(
+                    item => item.user?.id === userId && item.type === type
+                );
+                console.log(`🎯 Filtered ${type} for user ${userId}:`, filtered);
+                setItems(filtered);
+
             } catch (err) {
-                console.error(err);
+                console.error("❌ Error loading stories:", err);
+                setItems([]);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchContent();
-    }, [user.id]);
 
-    // Search filter
+        fetchStories();
+    }, [userId, type]);
+
+
+    // 🧩 Search handler
     const handleSearch = (term) => {
         setSearchTerm(term.toLowerCase());
+        if (onSearch) onSearch(term);
     };
 
-    const filterItems = (items) =>
-        items.filter(item => item.title.toLowerCase().includes(searchTerm));
+    const filteredItems = items.filter(item =>
+        item.title.toLowerCase().includes(searchTerm)
+    );
 
     return (
-        <>
-            <header className="header-user">
-                <div className="header-left"><Logo /></div>
-                <div className="header-center"><Navbar /></div>
-                <div className="header-right">
-                    <AvatarMenu user={user} logout={logout} isMod={isMod} />
+        <section className="content-section">
+            <div className="content-header">
+                <h3>{title}</h3>
+                <div className="search-wrapper">
+                    <SearchBar placeholder="Zoeken..." onSearch={handleSearch} />
                 </div>
-            </header>
-
-            <div className="profile-page">
-                <ProfileSidebar user={user} />
-
-                <main className="profile-main">
-                    {/* Stories Section */}
-                    <ContentSection
-                        title="Verhalen"
-                        items={filterItems(stories).map(s => ({
-                            title: s.title,
-                            cover: s.coverImage || "/default-cover.png",
-                            id: s.id
-                        }))}
-                        onSearch={handleSearch}
-                    />
-
-                    {/* Comics Section */}
-                    <ContentSection
-                        title="Comics"
-                        items={filterItems(comics).map(c => ({
-                            title: c.title,
-                            cover: c.coverImage || "/default-cover.png",
-                            id: c.id
-                        }))}
-                        onSearch={handleSearch}
-                    />
-                </main>
             </div>
-        </>
+
+            <div className="content-wrapper">
+                {loading ? (
+                    <p style={{ marginLeft: "15px" }}>Laden...</p>
+                ) : filteredItems.length === 0 ? (
+                    <p style={{ marginLeft: "15px", color: "red" }}>Geen resultaten gevonden.</p>
+                ) : (
+                    <>
+                        <div className="content-grid" ref={scrollRef}>
+                            {filteredItems.map((item, index) => (
+                                <div key={index} className="content-item">
+                                    <img
+                                        src={item.coverImage || "/placeholders/book-cover-placeholder.png"}
+                                        alt={item.title}
+                                        className="book"
+                                    />
+
+                                    <p>{item.title}</p>
+                                    <div className="content-actions">
+                                        <Button>Bewerken</Button>
+                                        <Button>Bekijken</Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <Button className="scroll-btn" onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })}>
+                            →
+                        </Button>
+                    </>
+                )}
+            </div>
+        </section>
     );
 }

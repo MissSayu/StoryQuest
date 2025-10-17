@@ -10,18 +10,37 @@ import Register from "../frontend/pages/Register.jsx";
 import PublishPage from "../frontend/pages/Publishpage.jsx";
 
 function App() {
-    const [user, setUser] = useState(localStorage.getItem("username") || null);
-    const [isMod, setIsMod] = useState(localStorage.getItem("isMod") === "true");
+    const [user, setUser] = useState(null);
+    const [isMod, setIsMod] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("username");
-        const storedIsMod = localStorage.getItem("isMod");
+        const storedUsername = localStorage.getItem("username");
 
-        if (storedUser) setUser(storedUser);
-        if (storedIsMod) setIsMod(storedIsMod === "true");
+        async function fetchUser() {
+            if (storedUsername) {
+                try {
+                    console.log("📡 Fetching user data for:", storedUsername);
+                    const res = await fetch(`http://localhost:8081/api/users/username/${storedUsername}`);
+                    if (!res.ok) throw new Error("Failed to fetch user");
+                    const data = await res.json();
+                    console.log("👤 Loaded full user from backend:", data);
+
+                    setUser(data); // now the full object
+                    setIsMod(data.role === "MOD");
+                } catch (err) {
+                    console.error("❌ Failed to load user:", err);
+                    setUser(null);
+                }
+            }
+            setLoading(false);
+        }
+
+        fetchUser();
     }, []);
 
     function logout() {
+        console.log("🚪 Logging out...");
         localStorage.removeItem("token");
         localStorage.removeItem("username");
         localStorage.removeItem("isMod");
@@ -29,6 +48,7 @@ function App() {
         setIsMod(false);
     }
 
+    if (loading) return <p>⏳ Gebruiker laden...</p>;
 
     return (
         <Router>
@@ -37,8 +57,12 @@ function App() {
                     path="/"
                     element={
                         user ? (
-                            <HomepageUser user={user} isMod={isMod} logout={logout} />
-
+                            <HomepageUser
+                                user={user}
+                                logout={logout}
+                                isMod={isMod}
+                                onUserLoaded={setUser}
+                            />
                         ) : (
                             <HomepageGuest />
                         )
@@ -48,7 +72,7 @@ function App() {
                     path="/home"
                     element={
                         user ? (
-                            <HomepageUser user={user} logout={logout} />
+                            <HomepageUser user={user} logout={logout} isMod={isMod} />
                         ) : (
                             <HomepageGuest />
                         )
@@ -56,14 +80,24 @@ function App() {
                 />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+
                 {isMod && (
-                    <Route path="/mod" element={<ModPage user={user} logout={logout} />} />)}
+                    <Route
+                        path="/mod"
+                        element={<ModPage user={user} logout={logout} />}
+                    />
+                )}
+
                 <Route
                     path="/profile/:username"
-                    element={<ProfilePage user={user} logout={logout} isMod={isMod} />}/>
+                    element={<ProfilePage user={user} logout={logout} isMod={isMod} />}
+                />
+
                 <Route
                     path="/publiceren"
-                    element={<PublishPage user={user} logout={logout} isMod={isMod} />}/>
+                    element={<PublishPage user={user} logout={logout} isMod={isMod} />}
+                />
+
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </Router>
