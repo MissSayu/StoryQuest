@@ -6,20 +6,29 @@ import ProfileSidebar from "../components/sidemenu.jsx";
 import Button from "../components/button.jsx";
 import GenreDropdown from "../components/genredropdown.jsx";
 import "../styles/publish.css";
+import PickStoryDropdown from "../components/pickstorydropdown";
 
 export default function PublishPage({ user: initialUser, logout, isMod }) {
     const [user, setUser] = useState(
         typeof initialUser === "object" ? initialUser : null
     );
+
+    const [mode, setMode] = useState("newStory"); // "newStory" or "newEpisode"
+    const [type, setType] = useState("story"); // "story" or "comic"
+
+    // Input fields
     const [title, setTitle] = useState("");
-    const [genre, setGenre] = useState("");
+    const [description, setDescription] = useState(""); // episode 0 for new story
+    const [storyContent, setStoryContent] = useState(""); // episode 1
+    const [newEpisodeContent, setNewEpisodeContent] = useState(""); // for new episodes
     const [cover, setCover] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
     const [file, setFile] = useState(null);
-    const [type, setType] = useState("story");
-    const [storyContent, setStoryContent] = useState("");
 
-    // Fetch full user object if we only got a username
+    const [userStories, setUserStories] = useState([]);
+    const [selectedStoryId, setSelectedStoryId] = useState("");
+
+    // Fetch full user object if only username provided
     useEffect(() => {
         if (user || !initialUser || typeof initialUser === "object") return;
 
@@ -39,7 +48,24 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         fetchUserData();
     }, [initialUser, user]);
 
-    // Generate cover preview and clean up previous object URL
+    useEffect(() => {
+        if (!user) return;
+        const fetchStories = async () => {
+            try {
+                const res = await fetch(
+                    `http://localhost:8081/api/stories/user/${user.id}`
+                );
+                if (!res.ok) throw new Error("Failed to fetch stories");
+                const data = await res.json();
+                setUserStories(data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchStories();
+    }, [user]);
+
+    // Cover preview
     useEffect(() => {
         if (!cover) {
             setCoverPreview(null);
@@ -49,7 +75,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         const objectUrl = URL.createObjectURL(cover);
         setCoverPreview(objectUrl);
 
-        return () => URL.revokeObjectURL(objectUrl); // prevent memory leaks
+        return () => URL.revokeObjectURL(objectUrl);
     }, [cover]);
 
     const handleCoverUpload = (e) => {
@@ -60,61 +86,95 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         if (e.target.files[0]) setFile(e.target.files[0]);
     };
 
-    const handlePublish = async () => {
-        if (!user) {
-            alert("User data not loaded yet!");
-            return;
-        }
-
+    const saveStory = async (status) => {
+        if (!user) return alert("User data not loaded yet!");
         if (
             !title ||
-            !genre ||
-            (type === "story" && !storyContent) ||
-            (type === "comic" && !file)
+            (type === "story" &&
+                !storyContent &&
+                mode === "newStory" &&
+                status === "published") ||
+            (type === "comic" && !file && status === "published")
         ) {
-            alert("Vul alle verplichte velden in!");
-            return;
+            return alert(
+                status === "draft"
+                    ? "Vul minimaal titel in voor draft!"
+                    : "Vul alle verplichte velden in!"
+            );
         }
 
         try {
             const formData = new FormData();
             formData.append("title", title);
-            formData.append("description", storyContent || "");
+            formData.append("description", description || "");
             formData.append("type", type);
-            formData.append("genre", genre);
+            formData.append("userId", user.id);
+            formData.append("status", status);
+
+
+            if (mode === "newStory" && type === "story") {
+                formData.append("storyContent", storyContent || "");
+            }
+
+
+            if (mode === "newEpisode" && type === "story") {
+                formData.append("storyId", selectedStoryId);
+                formData.append("content", newEpisodeContent || "");
+            }
+
             if (cover) formData.append("coverImage", cover);
             if (type === "comic" && file) formData.append("comicFile", file);
 
             const response = await fetch(
-                `http://localhost:8081/api/stories?userId=${user.id}`,
-                { method: "POST", body: formData }
+                "http://localhost:8081/api/stories/create",
+                {
+                    method: "POST",
+                    body: formData,
+                }
             );
 
-            if (!response.ok) throw new Error("Failed to publish story");
+            if (!response.ok) throw new Error("Failed to save story");
 
-            const createdStory = await response.json();
-            console.log("Published story:", createdStory);
-            alert("Je verhaal/comic is gepubliceerd!");
+            const savedStory = await response.json();
+            console.log(
+                `${status === "draft" ? "Draft" : "Published"} saved:`,
+                savedStory
+            );
 
-            // Reset form
+            alert(
+                status === "draft"
+                    ? "Opgeslagen als draft!"
+                    : "Verhaal/comic gepubliceerd!"
+            );
+
+            // Reset
             setTitle("");
-            setGenre("");
+            setDescription("");
+            setStoryContent("");
+            setNewEpisodeContent("");
             setCover(null);
             setFile(null);
-            setStoryContent("");
+            setSelectedStoryId("");
         } catch (err) {
             console.error(err);
-            alert("Er is iets misgegaan bij het publiceren!");
+            alert("Er is iets misgegaan bij opslaan!");
         }
     };
+
+    const handlePublish = () => saveStory("published");
+    const handleSaveDraft = () => saveStory("draft");
 
     if (!user) return <p>Loading user...</p>;
 
     return (
         <>
             <header className="header-user">
-                <div className="header-left"><Logo /></div>
-                <div className="header-center"><Navbar /></div>
+                <div className="header-left">
+                    <Logo />
+                </div>
+                <div className="header-center">
+                    <Navbar />
+                </div>
                 <div className="header-right">
                     <AvatarMenu user={user} logout={logout} isMod={isMod} />
                 </div>
@@ -126,10 +186,36 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                 <main className="publish-main">
                     <section className="publish-section">
                         <h2>
-                            Publiceer een nieuw {type === "story" ? "verhaal" : "comic"}
+                            {mode === "newStory"
+                                ? `Publiceer een nieuw ${
+                                    type === "story" ? "verhaal" : "comic"
+                                }`
+                                : "Nieuw Hoofdstuk"}
                         </h2>
 
-                        {/* Type Selector */}
+                        {/* Mode selector */}
+                        <div className="row type-selector">
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="newStory"
+                                    checked={mode === "newStory"}
+                                    onChange={() => setMode("newStory")}
+                                />{" "}
+                                Nieuw verhaal
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="newEpisode"
+                                    checked={mode === "newEpisode"}
+                                    onChange={() => setMode("newEpisode")}
+                                />{" "}
+                                Nieuw hoofdstuk
+                            </label>
+                        </div>
+
+                        {/* Story / Comic type selector */}
                         <div className="row type-selector">
                             <label>
                                 <input
@@ -151,7 +237,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             </label>
                         </div>
 
-                        {/* Title + Genre */}
+                        {/* Title + Dropdown / Genre */}
                         <div className="row title-genre">
                             <input
                                 type="text"
@@ -159,99 +245,106 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                             />
-                            <div className="genre-dropdown-wrapper">
-                                <GenreDropdown
-                                    selectedGenre={genre}
-                                    setSelectedGenre={setGenre}
-                                    options={["Fantasy", "Romance", "Sci-Fi", "Mystery", "Horror"]}
-                                />
+
+                            <div className="dropdown-wrapper">
+                                {mode === "newStory" ? (
+                                    <GenreDropdown
+                                        selectedGenre={type === "story" ? "" : description}
+                                        setSelectedGenre={setDescription}
+                                        options={[
+                                            "Fantasy",
+                                            "Romance",
+                                            "Sci-Fi",
+                                            "Mystery",
+                                            "Horror",
+                                        ]}
+                                    />
+                                ) : (
+                                    <PickStoryDropdown
+                                        options={userStories}
+                                        selectedStoryId={selectedStoryId}
+                                        setSelectedStoryId={setSelectedStoryId}
+                                    />
+                                )}
                             </div>
                         </div>
 
-                        {/* Story Section */}
-                        {type === "story" && (
-                            <div className="story-section">
-                                <div className="story-content-row">
-                                    <div className="story-input-row">
-                    <textarea
-                        className="story-textarea"
-                        placeholder="Schrijf hier je verhaal..."
-                        value={storyContent}
-                        onChange={(e) => setStoryContent(e.target.value)}
-                    />
-                                    </div>
-
-                                    <div className="story-actions-column">
-                                        <input
-                                            id="coverUploadStory"
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleCoverUpload}
-                                        />
-                                        <Button asLabel htmlFor="coverUploadStory" className="cover-button">
-                                            Upload Cover
-                                        </Button>
-
-                                        {coverPreview && (
-                                            <img
-                                                src={coverPreview}
-                                                alt="Cover preview"
-                                                className="cover-preview-large"
-                                            />
-                                        )}
-
-                                        <Button onClick={handlePublish} className="publish-button">
-                                            Publish Story
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Description textarea only for new story */}
+                        {mode === "newStory" && (
+                            <textarea
+                                className="story-textarea description-textarea"
+                                placeholder="Korte beschrijving..."
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                            />
                         )}
 
-                        {/* Comic Section */}
-                        {type === "comic" && (
-                            <div className="comic-section">
-                                <div className="comic-content-row">
-                                    <div className="comic-action-column">
-                                        <input
-                                            id="comicUpload"
-                                            type="file"
-                                            accept=".pdf,.cbz,.cbr,.png,.jpg"
-                                            onChange={handleFileUpload}
-                                        />
-                                        <Button asLabel htmlFor="comicUpload" className="cover-button">
-                                            Upload Comic File
-                                        </Button>
-                                        {file && <span className="file-name">{file.name}</span>}
-                                    </div>
+                        {/* Story content */}
+                        {type === "story" &&
+                            ((mode === "newStory" && (
+                                    <textarea
+                                        className="story-textarea content-textarea"
+                                        placeholder="Schrijf hier het eerste hoofdstuk (episode 1)..."
+                                        value={storyContent}
+                                        onChange={(e) => setStoryContent(e.target.value)}
+                                    />
+                                )) ||
+                                (mode === "newEpisode" && (
+                                    <textarea
+                                        className="story-textarea content-textarea"
+                                        placeholder="Schrijf hier het nieuwe hoofdstuk..."
+                                        value={newEpisodeContent}
+                                        onChange={(e) =>
+                                            setNewEpisodeContent(e.target.value)
+                                        }
+                                    />
+                                )))}
 
-                                    <div className="comic-action-column">
-                                        <input
-                                            id="coverUploadComic"
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleCoverUpload}
-                                        />
-                                        <Button asLabel htmlFor="coverUploadComic" className="cover-button">
-                                            Upload Cover
-                                        </Button>
-                                        {coverPreview && (
-                                            <img
-                                                src={coverPreview}
-                                                alt="Cover preview"
-                                                className="cover-preview-large"
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="publish-button-row">
-                                    <Button onClick={handlePublish} className="publish-button">
-                                        Publish Comic
+                        {/* Buttons & uploads */}
+                        <div className="story-actions-column">
+                            {type === "comic" && (
+                                <div className="comic-upload">
+                                    <input
+                                        id="comicUpload"
+                                        type="file"
+                                        accept=".pdf,.cbz,.cbr,.png,.jpg"
+                                        onChange={handleFileUpload}
+                                    />
+                                    <Button
+                                        asLabel
+                                        htmlFor="comicUpload"
+                                        className="cover-button"
+                                    >
+                                        Upload Comic File
                                     </Button>
+                                    {file && <span className="file-name">{file.name}</span>}
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            <input
+                                id="coverUpload"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleCoverUpload}
+                            />
+                            <Button asLabel htmlFor="coverUpload" className="cover-button">
+                                Upload Cover
+                            </Button>
+                            {coverPreview && (
+                                <img
+                                    src={coverPreview}
+                                    alt="Cover preview"
+                                    className="cover-preview-large"
+                                />
+                            )}
+
+                            <Button onClick={handlePublish} className="publish-button">
+                                Publiceren
+                            </Button>
+                            <Button onClick={handleSaveDraft} className="publish-button">
+                                Opslaan als draft
+                            </Button>
+                        </div>
                     </section>
                 </main>
             </div>

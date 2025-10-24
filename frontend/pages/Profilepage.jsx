@@ -38,18 +38,6 @@ export default function ProfilePage({ user: loggedInUser, logout, isMod }) {
         console.log("Zoekterm:", query);
     }
 
-    // Placeholder stats or fetched from profileUser if available
-    const stories = [
-        { title: "Mystic Adventures", cover: book1 },
-        { title: "Romance in the City", cover: book2 },
-        { title: "Fantasy Tales", cover: book3 },
-    ];
-
-    const comics = [
-        { title: "Cyberpunk Dreams", cover: book2 },
-        { title: "Space Odyssey", cover: book3 },
-        { title: "Magic Chronicles", cover: book1 },
-    ];
 
     return (
         <>
@@ -73,18 +61,22 @@ export default function ProfilePage({ user: loggedInUser, logout, isMod }) {
 
                 <main className="profile-main">
                     <div className="profile-stats">
-                        <StatsCard type="stories" value={profileUser ? profileUser.storiesCount : "—"} />
-                        <StatsCard type="followers" value={profileUser ? profileUser.followersCount : "—"} />
-                        <StatsCard type="following" value={profileUser ? profileUser.followingCount : "—"} />
+                        {profileUser && (
+                            <>
+                                <StatsCard type="stories" userId={profileUser.id}/>
+                                <StatsCard type="followers" userId={profileUser.id}/>
+                                <StatsCard type="following" userId={profileUser.id}/>
+                            </>
+                        )}
                     </div>
 
-                    {loading ? (
-                        <p style={{ marginLeft: "15px" }}>Gebruiker laden...</p>
-                    ) : profileUser ? (
-                        <>
-                            <ContentSection
-                                title="Verhalen"
-                                userId={profileUser.id}
+            {loading ? (
+                <p style={{marginLeft: "15px"}}>Gebruiker laden...</p>
+            ) : profileUser ? (
+                <>
+                    <ContentSection
+                        title="Verhalen"
+                        userId={profileUser.id}
                                 username={profileUser.username}
                                 type="story"
                                 onSearch={handleSearch}

@@ -1,49 +1,34 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "./button.jsx";
 import SearchBar from "./SearchBar";
 import "./contentsection.css";
+import placeholderCover from "../assets/book-cover-placeholder.png";
 
-export default function ContentSection({ title, userId: propUserId, username, type, onSearch }) {
+export default function ContentSection({ title, username, type, onSearch }) {
     const scrollRef = useRef(null);
+    const navigate = useNavigate();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [userId, setUserId] = useState(propUserId || null);
 
     useEffect(() => {
-        if (!userId) {
-            console.log("⏳ Waiting for userId...");
-            return;
-        }
+        if (!username) return;
 
         const fetchStories = async () => {
             try {
                 setLoading(true);
-                console.log("📡 Fetching all stories...");
                 const res = await fetch(`http://localhost:8081/api/stories/username/${username}`);
-
                 if (!res.ok) throw new Error(`Failed to fetch stories (${res.status})`);
 
-                // Get raw text first
-                const text = await res.text();
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (err) {
-                    console.error("❌ Failed to parse JSON. Raw response:", text);
-                    throw err;
-                }
+                const data = await res.json();
+                console.log("Fetched stories:", data);
 
-                console.log("✅ All stories fetched:", data);
 
-                const filtered = data.filter(
-                    item => item.user?.id === userId && item.type === type
-                );
-                console.log(`🎯 Filtered ${type} for user ${userId}:`, filtered);
+                const filtered = data.filter(item => item.type === type);
                 setItems(filtered);
-
             } catch (err) {
-                console.error("❌ Error loading stories:", err);
+                console.error("Error loading stories:", err);
                 setItems([]);
             } finally {
                 setLoading(false);
@@ -51,10 +36,8 @@ export default function ContentSection({ title, userId: propUserId, username, ty
         };
 
         fetchStories();
-    }, [userId, type]);
+    }, [username, type]);
 
-
-    // 🧩 Search handler
     const handleSearch = (term) => {
         setSearchTerm(term.toLowerCase());
         if (onSearch) onSearch(term);
@@ -63,6 +46,10 @@ export default function ContentSection({ title, userId: propUserId, username, ty
     const filteredItems = items.filter(item =>
         item.title.toLowerCase().includes(searchTerm)
     );
+
+    const handleViewStory = (storyId) => {
+        navigate(`/read/${storyId}`);
+    };
 
     return (
         <section className="content-section">
@@ -81,23 +68,34 @@ export default function ContentSection({ title, userId: propUserId, username, ty
                 ) : (
                     <>
                         <div className="content-grid" ref={scrollRef}>
-                            {filteredItems.map((item, index) => (
-                                <div key={index} className="content-item">
+                            {filteredItems.map((item) => (
+                                <div key={item.id} className="content-item">
                                     <img
-                                        src={item.coverImage || "/placeholders/book-cover-placeholder.png"}
-                                        alt={item.title}
+                                        src={
+                                            item.coverImage
+                                                ? `http://localhost:8081${item.coverImage}`
+                                                : placeholderCover
+                                        }
+                                        alt={item.title || "Geen titel"}
                                         className="book"
                                     />
-
-                                    <p>{item.title}</p>
+                                    <p className="story-title">{item.title || "Geen titel"}</p>
                                     <div className="content-actions">
-                                        <Button>Bewerken</Button>
-                                        <Button>Bekijken</Button>
+                                        <Button onClick={() => handleViewStory(item.id)}>
+                                            Bekijken
+                                        </Button>
+                                        <Button onClick={() => console.log(`Edit story ${story.id}`)}>Bewerken</Button>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <Button className="scroll-btn" onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })}>
+
+                        <Button
+                            className="scroll-btn"
+                            onClick={() =>
+                                scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })
+                            }
+                        >
                             →
                         </Button>
                     </>

@@ -27,6 +27,7 @@
 /* Title + Genre */
 .row.title-genre {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 15px;
 }
@@ -39,9 +40,6 @@
     font-size: 1rem;
 }
 
-.row.title-genre .genre-dropdown-wrapper {
-    flex: 0 0 auto;
-}
 
 /* Hide native file inputs */
 input[type="file"] {
@@ -60,12 +58,11 @@ input[type="file"] {
 /* Story textarea */
 .story-input-row {
     flex: none;
-    width: 600px;
+    width: 10px;
 }
 
 .story-textarea {
     width: 100%;
-    height: 400px;
     resize: none;
     padding: 12px 15px;
     border-radius: 10px;
@@ -74,17 +71,45 @@ input[type="file"] {
     box-sizing: border-box;
 }
 
-/* Action columns */
+.description-textarea {
+    height: 100px;
+}
+
+.content-textarea {
+    height: 400px;
+}
+
+/* Buttons layout adjustments */
 .story-actions-column,
 .comic-action-column {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-    flex-shrink: 0;
-    min-width: 300px;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-start;
 }
 
-/* Cover buttons & preview */
+.story-actions-column button,
+.comic-action-column button,
+.cover-button,
+.publish-button {
+    flex: 0 0 auto;
+}
+
+/* Comic upload: cover next to comic file */
+.comic-upload {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.comic-upload .file-name {
+    font-size: 0.9rem;
+    max-width: 200px;
+    word-break: break-word;
+}
+
+/* Cover button & preview */
 .cover-button {
     width: 300px;
     height: 230px;
@@ -107,7 +132,11 @@ input[type="file"] {
     font-size: 1.2rem;
 }
 
+/* Row for Publish / Save Draft buttons next to each other */
 .publish-button-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
     margin-top: 1rem;
 }
 
@@ -129,7 +158,7 @@ input[type="file"] {
     .cover-button,
     .cover-preview-large,
     .publish-button {
-        width: 100%;
+        width: 50%;
         max-width: 300px;
     }
 }
