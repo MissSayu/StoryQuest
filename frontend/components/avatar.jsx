@@ -7,7 +7,7 @@ export default function AvatarMenu({ user, logout }) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const navigate = useNavigate();
 
-    if (!user) return <p>Loading...</p>; // fallback while user is null
+    if (!user) return null;
 
     const username = user.username || "Onbekende gebruiker";
     const role = user.role || "USER";
@@ -16,16 +16,13 @@ export default function AvatarMenu({ user, logout }) {
 
     const handleLogout = () => {
         if (logout) logout();
-        navigate("/");
+        setDropdownOpen(false);
+        navigate("/", { replace: true });
     };
 
     return (
         <div className="profile" onClick={() => setDropdownOpen(!dropdownOpen)}>
-            <img
-                src={profileImg}
-                alt="Profielfoto"
-                className="avatar"
-            />
+            <img src={profileImg} alt="Profielfoto" className="avatar" />
 
             {dropdownOpen && (
                 <div className="dropdown-menu">

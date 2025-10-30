@@ -13,14 +13,13 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         typeof initialUser === "object" ? initialUser : null
     );
 
-    const [mode, setMode] = useState("newStory"); // "newStory" or "newEpisode"
-    const [type, setType] = useState("story"); // "story" or "comic"
-
-    // Input fields
+    const [mode, setMode] = useState("newStory");
+    const [type, setType] = useState("story");
     const [title, setTitle] = useState("");
-    const [description, setDescription] = useState(""); // episode 0 for new story
-    const [storyContent, setStoryContent] = useState(""); // episode 1
-    const [newEpisodeContent, setNewEpisodeContent] = useState(""); // for new episodes
+    const [description, setDescription] = useState("");
+    const [storyContent, setStoryContent] = useState("");
+    const [newEpisodeContent, setNewEpisodeContent] = useState("");
+    const [genre, setGenre] = useState("");
     const [cover, setCover] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
     const [file, setFile] = useState(null);
@@ -28,7 +27,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
     const [userStories, setUserStories] = useState([]);
     const [selectedStoryId, setSelectedStoryId] = useState("");
 
-    // Fetch full user object if only username provided
+
     useEffect(() => {
         if (user || !initialUser || typeof initialUser === "object") return;
 
@@ -48,6 +47,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         fetchUserData();
     }, [initialUser, user]);
 
+
     useEffect(() => {
         if (!user) return;
         const fetchStories = async () => {
@@ -65,7 +65,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         fetchStories();
     }, [user]);
 
-    // Cover preview
+
     useEffect(() => {
         if (!cover) {
             setCoverPreview(null);
@@ -107,39 +107,56 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
             const formData = new FormData();
             formData.append("title", title);
             formData.append("description", description || "");
+            formData.append("genre", genre || "");
             formData.append("type", type);
             formData.append("userId", user.id);
             formData.append("status", status);
 
-
+            // Story content
             if (mode === "newStory" && type === "story") {
                 formData.append("storyContent", storyContent || "");
             }
 
-
+            // New episode content
             if (mode === "newEpisode" && type === "story") {
                 formData.append("storyId", selectedStoryId);
-                formData.append("content", newEpisodeContent || "");
+                formData.append("storyContent", newEpisodeContent || "");
             }
 
+            // Cover image
             if (cover) formData.append("coverImage", cover);
-            if (type === "comic" && file) formData.append("comicFile", file);
 
-            const response = await fetch(
-                "http://localhost:8081/api/stories/create",
-                {
-                    method: "POST",
-                    body: formData,
-                }
-            );
+            // Step 1️⃣: Create story/episode
+            const response = await fetch("http://localhost:8081/api/stories/create", {
+                method: "POST",
+                body: formData,
+            });
 
-            if (!response.ok) throw new Error("Failed to save story");
+            if (!response.ok) throw new Error("Failed to save story/episode");
 
-            const savedStory = await response.json();
+            const savedStoryOrEpisode = await response.json();
             console.log(
                 `${status === "draft" ? "Draft" : "Published"} saved:`,
-                savedStory
+                savedStoryOrEpisode
             );
+
+            // Step 2️⃣: Upload comic file if it's a comic
+            if (type === "comic" && file) {
+                const comicForm = new FormData();
+                comicForm.append("file", file); // must match backend's @RequestParam("file")
+
+                // If you just created a new comic story, savedStoryOrEpisode.id should be episode ID
+                const uploadRes = await fetch(
+                    `http://localhost:8081/api/episodes/${savedStoryOrEpisode.id}/uploadComic`,
+                    {
+                        method: "POST",
+                        body: comicForm,
+                    }
+                );
+
+                if (!uploadRes.ok) throw new Error("Failed to upload comic file");
+                console.log("Comic uploaded successfully!");
+            }
 
             alert(
                 status === "draft"
@@ -147,19 +164,22 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                     : "Verhaal/comic gepubliceerd!"
             );
 
-            // Reset
+            // Reset all fields
             setTitle("");
             setDescription("");
             setStoryContent("");
             setNewEpisodeContent("");
+            setGenre("");
             setCover(null);
             setFile(null);
             setSelectedStoryId("");
+
         } catch (err) {
             console.error(err);
-            alert("Er is iets misgegaan bij opslaan!");
+            alert("Er is iets misgegaan bij opslaan: " + err.message);
         }
     };
+
 
     const handlePublish = () => saveStory("published");
     const handleSaveDraft = () => saveStory("draft");
@@ -193,7 +213,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                                 : "Nieuw Hoofdstuk"}
                         </h2>
 
-                        {/* Mode selector */}
+
                         <div className="row type-selector">
                             <label>
                                 <input
@@ -215,7 +235,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             </label>
                         </div>
 
-                        {/* Story / Comic type selector */}
+
                         <div className="row type-selector">
                             <label>
                                 <input
@@ -237,7 +257,6 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             </label>
                         </div>
 
-                        {/* Title + Dropdown / Genre */}
                         <div className="row title-genre">
                             <input
                                 type="text"
@@ -249,14 +268,19 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             <div className="dropdown-wrapper">
                                 {mode === "newStory" ? (
                                     <GenreDropdown
-                                        selectedGenre={type === "story" ? "" : description}
-                                        setSelectedGenre={setDescription}
+                                        selectedGenre={genre}
+                                        setSelectedGenre={setGenre}
                                         options={[
                                             "Fantasy",
                                             "Romance",
                                             "Sci-Fi",
                                             "Mystery",
                                             "Horror",
+                                            "Western",
+                                            "Adventure",
+                                            "Crime",
+                                            "Spy",
+                                            "Thriller",
                                         ]}
                                     />
                                 ) : (
@@ -269,7 +293,6 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             </div>
                         </div>
 
-                        {/* Description textarea only for new story */}
                         {mode === "newStory" && (
                             <textarea
                                 className="story-textarea description-textarea"
@@ -279,7 +302,6 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             />
                         )}
 
-                        {/* Story content */}
                         {type === "story" &&
                             ((mode === "newStory" && (
                                     <textarea
@@ -300,7 +322,6 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                                     />
                                 )))}
 
-                        {/* Buttons & uploads */}
                         <div className="story-actions-column">
                             {type === "comic" && (
                                 <div className="comic-upload">

@@ -7,92 +7,133 @@ import AvatarMenu from "../components/Avatar";
 import ProfileSidebar from "../components/sidemenu.jsx";
 import StatsCard from "../components/statscard.jsx";
 import ContentSection from "../components/ContentSection";
-import book1 from "../assets/book-cover-placeholder.png";
-import book2 from "../assets/book-cover-placeholder.png";
-import book3 from "../assets/book-cover-placeholder.png";
+import EditProfileForm from "../components/editprofile";
+
 
 export default function ProfilePage({ user: loggedInUser, logout, isMod }) {
     const { username } = useParams();
     const [profileUser, setProfileUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
 
-    // Fetch the profile user based on URL param
     useEffect(() => {
         const fetchProfileUser = async () => {
+            setLoading(true);
             try {
+
                 const res = await fetch(`http://localhost:8081/api/users/username/${username}`);
                 if (!res.ok) throw new Error("User not found");
                 const data = await res.json();
                 setProfileUser(data);
             } catch (err) {
                 console.error("Failed to fetch profile user:", err);
+                setProfileUser(null);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchProfileUser();
+        if (username) fetchProfileUser();
     }, [username]);
 
     function handleSearch(query) {
         console.log("Zoekterm:", query);
     }
 
+    function handleEditProfile() {
+
+        if (!loggedInUser || loggedInUser.id !== profileUser?.id) {
+            return;
+        }
+        setIsEditingProfile(true);
+    }
+
+    function handleCancelEdit() {
+        setIsEditingProfile(false);
+    }
+
+
+    function handleSaveProfile(updatedUser) {
+        setIsEditingProfile(false);
+
+
+        setProfileUser(updatedUser);
+
+        if (loggedInUser && updatedUser.id === loggedInUser.id) {
+
+            loggedInUser.username = updatedUser.username;
+            loggedInUser.bio = updatedUser.bio;
+            loggedInUser.avatarUrl = updatedUser.avatarUrl;
+
+            localStorage.setItem("username", updatedUser.username);
+        }
+    }
 
     return (
         <>
-            {/* Header */}
             <header className="header-user">
-                <div className="header-left">
-                    <Logo />
-                </div>
-                <div className="header-center">
-                    <Navbar onSearch={handleSearch} />
-                </div>
+                <div className="header-left"><Logo /></div>
+                <div className="header-center"><Navbar onSearch={handleSearch} /></div>
                 <div className="header-right">
-                    {/* Pass loggedInUser object if available, otherwise null */}
                     <AvatarMenu user={loggedInUser || null} logout={logout} isMod={isMod} />
                 </div>
             </header>
 
             <div className="profile-page">
-                {/* Sidebar receives full user object or username string */}
-                <ProfileSidebar user={loggedInUser || null} />
+
+                <ProfileSidebar
+                    user={loggedInUser || null}
+                    author={profileUser || null}
+                    onEditProfile={handleEditProfile}
+                />
 
                 <main className="profile-main">
-                    <div className="profile-stats">
-                        {profileUser && (
-                            <>
-                                <StatsCard type="stories" userId={profileUser.id}/>
-                                <StatsCard type="followers" userId={profileUser.id}/>
-                                <StatsCard type="following" userId={profileUser.id}/>
-                            </>
-                        )}
-                    </div>
+                    {isEditingProfile ? (
+                        <EditProfileForm
+                            user={loggedInUser}
+                            onCancel={handleCancelEdit}
+                            onSave={handleSaveProfile}
+                        />
+                    ) : loading ? (
+                        <p style={{marginLeft: "15px"}}>Gebruiker laden...</p>
+                    ) : profileUser ? (
+                        <>
+                            <div className="profile-stats">
+                                <StatsCard
+                                    type="stories"
+                                    username={profileUser.username}
+                                    loggedInUser={loggedInUser}
+                                />
+                                <StatsCard
+                                    type="followers"
+                                    userId={profileUser.id}
+                                />
+                                <StatsCard
+                                    type="following"
+                                    userId={profileUser.id}
+                                />
+                            </div>
 
-            {loading ? (
-                <p style={{marginLeft: "15px"}}>Gebruiker laden...</p>
-            ) : profileUser ? (
-                <>
-                    <ContentSection
-                        title="Verhalen"
-                        userId={profileUser.id}
+                            <ContentSection
+                                title="Verhalen"
                                 username={profileUser.username}
                                 type="story"
                                 onSearch={handleSearch}
+                                user={loggedInUser} // needed for drafts
                             />
                             <ContentSection
                                 title="Comics"
-                                userId={profileUser.id}
                                 username={profileUser.username}
                                 type="comic"
                                 onSearch={handleSearch}
+                                user={loggedInUser}
                             />
                         </>
                     ) : (
-                        <p style={{ marginLeft: "15px" }}>Gebruiker niet gevonden.</p>
+                        <p style={{marginLeft: "15px"}}>Gebruiker niet gevonden.</p>
                     )}
                 </main>
+
             </div>
         </>
     );

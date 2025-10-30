@@ -1,33 +1,42 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/homepage-guest.css";
 import Logo from "../components/Logo";
 import Button from "../components/button.jsx";
-import book1 from "../assets/book-cover-placeholder.png";
-import book2 from "../assets/book-cover-placeholder.png";
-import book3 from "../assets/book-cover-placeholder.png";
 
-function HomepageGuest({ user }) {
+function HomepageGuest() {
     const navigate = useNavigate();
+    const [stories, setStories] = useState([]);
+
+    useEffect(() => {
+        async function fetchStories() {
+            try {
+                const res = await fetch("http://localhost:8081/api/stories/random?count=10");
+                if (!res.ok) throw new Error("Failed to fetch stories");
+                const data = await res.json();
+
+                const publishedStories = data.filter(story => story.status === "published");
+                setStories(publishedStories.slice(0, 3));
+            } catch (err) {
+                console.error("Failed to load stories:", err);
+            }
+        }
+
+        fetchStories();
+    }, []);
 
     return (
         <div className="fullscreen-bg">
             <div className="homepage">
                 <header>
-                    <Logo user={user} />
+                    <Logo />
 
                     <div className="header-buttons">
-                        <Button
-                            className="header-button"
-                            onClick={() => navigate("/login")}
-                        >
+                        <Button className="header-button" onClick={() => navigate("/login")}>
                             Log in
                         </Button>
 
-                        <Button
-                            className="header-button"
-                            onClick={() => navigate("/register")}
-                        >
+                        <Button className="header-button" onClick={() => navigate("/register")}>
                             Registreren
                         </Button>
                     </div>
@@ -41,10 +50,7 @@ function HomepageGuest({ user }) {
                                 <p>
                                     Bij StoryQuest kan jij jouw creatieve universum bouwen en delen met de wereld.
                                 </p>
-                                <Button
-                                    className="cta-btn"
-                                    onClick={() => navigate("/login")}
-                                >
+                                <Button className="cta-btn" onClick={() => navigate("/login")}>
                                     Begin nu met schrijven
                                 </Button>
                             </div>
@@ -52,9 +58,31 @@ function HomepageGuest({ user }) {
                             <div className="intro-books">
                                 <h2>Populaire verhalen</h2>
                                 <div className="book-list">
-                                    <img src={book1} alt="Boek 1" className="book" />
-                                    <img src={book2} alt="Boek 2" className="book" />
-                                    <img src={book3} alt="Boek 3" className="book" />
+                                    {stories.length > 0 ? (
+                                        stories.map((story) => (
+                                            <div key={story.id} className="book">
+                                                <img
+                                                    src={
+                                                        story.coverImage
+                                                            ? `http://localhost:8081${story.coverImage.replace(
+                                                                "src/main/resources/static",
+                                                                ""
+                                                            )}`
+                                                            : "/placeholders/book-placeholder.png"
+                                                    }
+                                                    alt={story.title || "Story Cover"}
+                                                    className="book"
+                                                />
+                                                <p className="book-title">{story.title}</p> {/* Added title below cover */}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <div className="book"/>
+                                            <div className="book"/>
+                                            <div className="book"/>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

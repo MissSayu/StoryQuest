@@ -5,12 +5,14 @@ import SearchBar from "./SearchBar";
 import "./contentsection.css";
 import placeholderCover from "../assets/book-cover-placeholder.png";
 
-export default function ContentSection({ title, username, type, onSearch }) {
+export default function ContentSection({ title, username, type, onSearch, user }) {
     const scrollRef = useRef(null);
     const navigate = useNavigate();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+
+    const isOwnProfile = user?.username === username;
 
     useEffect(() => {
         if (!username) return;
@@ -25,8 +27,8 @@ export default function ContentSection({ title, username, type, onSearch }) {
                 console.log("Fetched stories:", data);
 
 
-                const filtered = data.filter(item => item.type === type);
-                setItems(filtered);
+                const filteredByType = data.filter(item => item.type === type);
+                setItems(filteredByType);
             } catch (err) {
                 console.error("Error loading stories:", err);
                 setItems([]);
@@ -43,9 +45,14 @@ export default function ContentSection({ title, username, type, onSearch }) {
         if (onSearch) onSearch(term);
     };
 
-    const filteredItems = items.filter(item =>
-        item.title.toLowerCase().includes(searchTerm)
-    );
+
+    const filteredItems = items
+        .filter(item => item.title.toLowerCase().includes(searchTerm))
+        .filter(item => {
+            // Hide drafts for other users
+            if (!isOwnProfile && item.status.toLowerCase() === "draft") return false;
+            return true;
+        });
 
     const handleViewStory = (storyId) => {
         navigate(`/read/${storyId}`);
@@ -69,22 +76,26 @@ export default function ContentSection({ title, username, type, onSearch }) {
                     <>
                         <div className="content-grid" ref={scrollRef}>
                             {filteredItems.map((item) => (
-                                <div key={item.id} className="content-item">
+                                <div
+                                    key={item.id}
+                                    className={`content-item ${isOwnProfile && item.status.toLowerCase() === "draft" ? "draft" : ""}`}
+                                >
                                     <img
-                                        src={
-                                            item.coverImage
-                                                ? `http://localhost:8081${item.coverImage}`
-                                                : placeholderCover
-                                        }
+                                        src={item.coverImage ? `http://localhost:8081${item.coverImage}` : placeholderCover}
                                         alt={item.title || "Geen titel"}
                                         className="book"
                                     />
-                                    <p className="story-title">{item.title || "Geen titel"}</p>
+                                    <p className="story-title">
+                                        {item.title || "Geen titel"}
+                                        {isOwnProfile && item.status.toLowerCase() === "draft" && (
+                                            <span className="draft-badge">Draft</span>
+                                        )}
+                                    </p>
                                     <div className="content-actions">
-                                        <Button onClick={() => handleViewStory(item.id)}>
-                                            Bekijken
-                                        </Button>
-                                        <Button onClick={() => console.log(`Edit story ${story.id}`)}>Bewerken</Button>
+                                        <Button onClick={() => handleViewStory(item.id)}>Bekijken</Button>
+                                        {isOwnProfile && (
+                                            <Button onClick={() => console.log(`Edit story ${item.id}`)}>Bewerken</Button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -92,9 +103,7 @@ export default function ContentSection({ title, username, type, onSearch }) {
 
                         <Button
                             className="scroll-btn"
-                            onClick={() =>
-                                scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })
-                            }
+                            onClick={() => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" })}
                         >
                             →
                         </Button>

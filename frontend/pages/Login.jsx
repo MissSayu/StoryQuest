@@ -1,36 +1,27 @@
 import React, { useState } from "react";
+import { Formik } from "formik";
+import * as Yup from "yup";
 import Logo from "../components/Logo";
 import "../styles/login.css";
 
 function Login() {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    const handleLogin = async (values) => {
         setError("");
-
         try {
             const response = await fetch("http://localhost:8081/api/auth/login", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ username, password }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(values),
             });
-
             const data = await response.json();
-
             if (response.ok) {
-
                 localStorage.setItem("token", data.token);
-                localStorage.setItem("username", username);
+                localStorage.setItem("username", values.username);
                 localStorage.setItem("isMod", data.isMod);
-                console.log("Login succesvol! Token:", data.token);
                 window.location.href = "/homepage";
             } else {
-
                 setError(data.message || "Invalid username or password");
             }
         } catch (err) {
@@ -39,6 +30,13 @@ function Login() {
         }
     };
 
+    const LoginSchema = Yup.object().shape({
+        username: Yup.string().required("Gebruikersnaam is verplicht"),
+        password: Yup.string()
+            .min(6, "Wachtwoord minimaal 6 tekens")
+            .required("Wachtwoord is verplicht"),
+    });
+
     return (
         <div className="center-container">
             <Logo />
@@ -46,34 +44,58 @@ function Login() {
             <div className="login-box">
                 <h1>Log in</h1>
 
-                <label htmlFor="username">Gebruikersnaam:</label>
-                <input
-                    type="text"
-                    id="username"
-                    placeholder="Virelight"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                />
+                <Formik
+                    initialValues={{ username: "", password: "" }}
+                    validationSchema={LoginSchema}
+                    onSubmit={handleLogin}
+                >
+                    {({ values, errors, touched, handleChange, handleBlur, handleSubmit }) => (
+                        <form onSubmit={handleSubmit}>
+                            <label htmlFor="username">Gebruikersnaam:</label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="Virelight"
+                                value={values.username}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                            />
+                            {errors.username && touched.username && (
+                                <p className="error">{errors.username}</p>
+                            )}
 
-                <label htmlFor="password">Wachtwoord:</label>
-                <input
-                    type="password"
-                    id="password"
-                    placeholder="Wachtwoord"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+                            <label htmlFor="password">Wachtwoord:</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Wachtwoord"
+                                value={values.password}
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                            />
+                            {errors.password && touched.password && (
+                                <p className="error">{errors.password}</p>
+                            )}
 
-                <a href="#" className="forgot-password">Wachtwoord vergeten?</a>
+                            <button type="submit" className="button">
+                                Log in
+                            </button>
 
-                {error && <p className="error">{error}</p>}
+                            <a href="#" className="forgot-password">
+                                Wachtwoord vergeten?
+                            </a>
 
-                <button className="button" onClick={handleLogin}>Log in</button>
+                            {error && <p className="error">{error}</p>}
 
-                <div className="register-text">
-                    <p>Nog geen account?</p>
-                    <a href="/register">Registreren</a>
-                </div>
+                            <div className="register-text">
+                                <p>Nog geen account?</p>
+                                <a href="/register">Registreren</a>
+                            </div>
+                        </form>
+                    )}
+                </Formik>
             </div>
         </div>
     );

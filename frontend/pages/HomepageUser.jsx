@@ -16,10 +16,16 @@ function HomepageUser({ user, logout, isMod }) {
     useEffect(() => {
         async function fetchStories() {
             try {
-                const res = await fetch("http://localhost:8081/api/stories/random?count=3");
+
+                const res = await fetch("http://localhost:8081/api/stories/random?count=10");
                 if (!res.ok) throw new Error("Failed to fetch stories");
                 const data = await res.json();
-                setStories(data);
+
+
+                const publishedStories = data.filter(story => story.status === "published");
+
+
+                setStories(publishedStories.slice(0, 3));
             } catch (err) {
                 console.error("Failed to load stories:", err);
             }
@@ -52,13 +58,15 @@ function HomepageUser({ user, logout, isMod }) {
                                     <img
                                         src={
                                             story.coverImage
-                                                ? `http://localhost:8081${story.coverImage.replace("src/main/resources/static", "")}`
-                                                : "http://localhost:8081/uploads/default-cover.png" // fallback image
+                                                ? `http://localhost:8081${story.coverImage.replace(
+                                                    "src/main/resources/static",
+                                                    ""
+                                                )}`
+                                                : "http://localhost:8081/uploads/default-cover.png"
                                         }
                                         alt={story.title || "Story Cover"}
                                         className="book-cover"
                                     />
-
                                     <p>{story.title}</p>
                                     <small>Door {story.author?.username || "Onbekend"}</small>
                                 </div>

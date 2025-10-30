@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import avatarPlaceholder from "../assets/avatar-placeholder.png";
 import statisticsIcon from "../assets/statistics-icon.png";
 import profileIcon from "../assets/person-icon.png";
@@ -6,74 +7,91 @@ import settingsIcon from "../assets/settings-icon.png";
 import "./sidebarmenu.css";
 import Button from "../components/button.jsx";
 
-function ProfileSidebar({ user, author, episodes, onSelectEpisode, selectedEpisode }) {
-    const isReadPage = !!author; // only true if author exists
+function ProfileSidebar({
+                            user,
+                            author,
+                            episodes,
+                            onSelectEpisode,
+                            selectedEpisode,
+                            onEditProfile,
+                        }) {
+    const navigate = useNavigate();
+    const isReadPage = !!episodes;
+    const viewedUser = author || user;
+    const displayName = viewedUser?.username || "Onbekende gebruiker";
+    const bio = viewedUser?.bio || "Nog geen bio beschikbaar.";
+
+    const [profileImg, setProfileImg] = useState(avatarPlaceholder);
+
+    useEffect(() => {
+        const url = viewedUser?.avatarUrl;
+        setProfileImg(url ? (url.startsWith("http") ? url : `http://localhost:8081${url}`) : avatarPlaceholder);
+    }, [viewedUser?.avatarUrl]);
+
+
     const [isFollowing, setIsFollowing] = useState(false);
 
-    const displayName = author?.username || user?.username || "Onbekende gebruiker";
-    const bio = author?.bio || user?.bio || "Nog geen bio beschikbaar.";
-    const profileImg = author?.avatarUrl || user?.avatarUrl || avatarPlaceholder;
-
-    // Check if the current user is following this author
     useEffect(() => {
-        if (!isReadPage || !user) return;
+        if (!author || !user || author.id === user.id) return;
 
         async function checkFollowStatus() {
             try {
                 const res = await fetch(
                     `http://localhost:8081/api/follow/${user.id}/isFollowing/${author.id}`
                 );
-                if (res.ok) {
-                    const status = await res.json();
-                    setIsFollowing(status);
-                } else {
-                    console.error("Failed to fetch follow status");
-                }
+                setIsFollowing(res.ok ? Boolean(await res.json()) : false);
             } catch (err) {
                 console.error("Error checking follow status:", err);
             }
         }
-
         checkFollowStatus();
-    }, [user, author, isReadPage]);
+    }, [author, user]);
 
-    // Toggle follow/unfollow author
     const toggleFollowAuthor = async () => {
         if (!user || !author) {
             alert("Je moet ingelogd zijn om een auteur te volgen.");
             return;
         }
-
         try {
-            const url = `http://localhost:8081/api/follow/${user.id}/${isFollowing ? "unfollowAuthor" : "followAuthor"}/${author.id}`;
-            const res = await fetch(url, { method: "POST" });
-
-            if (res.ok) {
-                setIsFollowing(!isFollowing);
-            } else {
-                alert("Kon auteur niet volgen/ontvolgen.");
-                console.error(await res.text());
-            }
+            const action = isFollowing ? "unfollowAuthor" : "followAuthor";
+            const res = await fetch(`http://localhost:8081/api/follow/${user.id}/${action}/${author.id}`, { method: "POST" });
+            if (res.ok) setIsFollowing(!isFollowing);
         } catch (err) {
             console.error("Fout bij volgen/ontvolgen:", err);
         }
     };
 
+    const goToProfile = () => {
+        if (viewedUser) navigate(`/profile/${viewedUser.username}`);
+    };
+
     return (
         <aside className="profile-sidebar">
             <div className="profile-info">
-                <img src={profileImg} alt="Profile" className="profile-photo" />
-                <h3 className="username">{displayName}</h3>
+                <img
+                    src={profileImg}
+                    alt="Profile"
+                    className="profile-photo"
+                    onError={(e) => (e.target.src = avatarPlaceholder)}
+                />
+
+                <h3
+                    className="username"
+                    style={isReadPage ? { cursor: "pointer", textDecoration: "underline" } : {}}
+                    onClick={isReadPage ? goToProfile : undefined}
+                >
+                    {displayName}
+                </h3>
                 <p>{bio}</p>
 
-                {isReadPage && (
+                {author && user && author.id !== user.id ? (
                     <Button onClick={toggleFollowAuthor}>
                         {isFollowing ? "Auteur ontvolgen" : "Volg auteur"}
                     </Button>
-                )}
-
-                {!isReadPage && (
-                    <Button onClick={() => alert("Profiel bewerken")}>Profiel bewerken</Button>
+                ) : (
+                    user && viewedUser.id === user.id && (
+                        <Button onClick={onEditProfile}>Profiel bewerken</Button>
+                    )
                 )}
             </div>
 
@@ -83,7 +101,7 @@ function ProfileSidebar({ user, author, episodes, onSelectEpisode, selectedEpiso
                     {episodes.map((ep) => (
                         <a
                             key={ep.id}
-                            onClick={() => onSelectEpisode(ep)}
+                            onClick={() => onSelectEpisode?.(ep)}
                             className={selectedEpisode?.id === ep.id ? "active" : ""}
                         >
                             <span className="menu-icon">📖</span>
@@ -93,7 +111,7 @@ function ProfileSidebar({ user, author, episodes, onSelectEpisode, selectedEpiso
                 </nav>
             )}
 
-            {!isReadPage && (
+            {!isReadPage && user && viewedUser.id === user.id && (
                 <nav className="sidebar-menu">
                     <a href="#">
                         <img src={statisticsIcon} alt="Dashboard" className="menu-icon" />
