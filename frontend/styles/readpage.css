@@ -1,0 +1,114 @@
+.readpage-main {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    align-items: flex-start; /* ensure sidebar aligns with top of story */
+}
+
+/* Story content */
+.story-content {
+    flex: 1;
+    background: rgba(201, 28, 213, 0.19);
+    padding: 2rem;
+    border-radius: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    hite-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+
+.story-header {
+    text-align: center;
+}
+
+.story-cover {
+    width: 100%;
+    height: auto; /* make cover responsive to its own aspect ratio */
+    max-height: 400px; /* optional limit */
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+
+.story-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Episode content */
+.episode-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+
+.episode-content p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Comment section styling */
+.comment-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.comment-section textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 0.5rem;
+    border: 1px solid #ccc;
+    resize: none; /* no resizing */
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.comment-section .comment-button {
+    align-self: flex-end;
+    padding: 0.5rem 1rem;
+    border: none;
+    background-color: #873bc9;
+    color: white;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.comment-section .comment-button:hover {
+    background-color: #6b2ea3;
+}
+
+/* Short stories: comments appear immediately below */
+.short-story {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .readpage-main {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .profile-sidebar {
+        max-height: unset;
+        width: 100%;
+    }
+
+    .story-content {
+        width: 100%;
+    }
+
+    .story-cover {
+        max-height: 300px;
+    }
+}
