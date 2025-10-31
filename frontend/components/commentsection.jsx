@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from "react";
 import Button from "./button.jsx";
 import "./commentsection.css";
+import api from "../../src/api"; // jouw axios instance met JWT
 
 export default function CommentSection({ episodeId, user }) {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     const fetchComments = async () => {
         if (!episodeId) return;
+        setLoading(true);
+        setError(null);
         try {
-            const res = await fetch(`http://localhost:8081/api/episodes/${episodeId}/comments`);
-            if (!res.ok) throw new Error("Failed to fetch comments");
-            const data = await res.json();
-            setComments(data);
+            const res = await api.get(`/episodes/${episodeId}/comments`);
+            setComments(res.data);
         } catch (err) {
             console.error("Error loading comments:", err);
+            setError("Kan reacties niet laden");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -25,31 +31,33 @@ export default function CommentSection({ episodeId, user }) {
     const postComment = async () => {
         if (!newComment.trim() || !user) return;
         try {
-            const res = await fetch(
-                `http://localhost:8081/api/episodes/${episodeId}/comments/add?userId=${user.id}&textContent=${encodeURIComponent(newComment)}`,
-                { method: "POST" }
-            );
-            if (!res.ok) throw new Error("Failed to post comment");
+            await api.post(`/episodes/${episodeId}/comments/add`, {
+                userId: user.id,
+                textContent: newComment,
+            });
             setNewComment("");
             fetchComments();
         } catch (err) {
             console.error("Error posting comment:", err);
+            setError("Kan reactie niet plaatsen");
         }
     };
 
     const deleteComment = async (commentId) => {
         if (!user) return;
         try {
-            const res = await fetch(
-                `http://localhost:8081/api/episodes/comments/${commentId}?userId=${user.id}`,
-                { method: "DELETE" }
-            );
-            if (!res.ok) throw new Error("Failed to delete comment");
+            await api.delete(`/episodes/comments/${commentId}`, {
+                data: { userId: user.id },
+            });
             fetchComments();
         } catch (err) {
             console.error("Error deleting comment:", err);
+            setError("Kan reactie niet verwijderen");
         }
     };
+
+    if (loading) return <p>Laden reacties...</p>;
+    if (error) return <p style={{ color: "red" }}>{error}</p>;
 
     return (
         <div className="comment-section">

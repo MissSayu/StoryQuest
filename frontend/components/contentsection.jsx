@@ -4,6 +4,7 @@ import Button from "./button.jsx";
 import SearchBar from "./SearchBar";
 import "./contentsection.css";
 import placeholderCover from "../assets/book-cover-placeholder.png";
+import api from "../../src/api";
 
 export default function ContentSection({ title, username, type, onSearch, user }) {
     const scrollRef = useRef(null);
@@ -14,20 +15,19 @@ export default function ContentSection({ title, username, type, onSearch, user }
 
     const isOwnProfile = user?.username === username;
 
+    // Helper voor null-safe toLowerCase
+    const safeLower = (str) => (str || "").toLowerCase();
+
     useEffect(() => {
         if (!username) return;
 
-        const fetchStories = async () => {
+        const fetchItems = async () => {
             try {
                 setLoading(true);
-                const res = await fetch(`http://localhost:8081/api/stories/username/${username}`);
-                if (!res.ok) throw new Error(`Failed to fetch stories (${res.status})`);
+                const res = await api.get(`/stories/username/${username}`);
+                const data = res.data;
 
-                const data = await res.json();
-                console.log("Fetched stories:", data);
-
-
-                const filteredByType = data.filter(item => item.type === type);
+                const filteredByType = data.filter(item => safeLower(item.type) === safeLower(type));
                 setItems(filteredByType);
             } catch (err) {
                 console.error("Error loading stories:", err);
@@ -37,26 +37,23 @@ export default function ContentSection({ title, username, type, onSearch, user }
             }
         };
 
-        fetchStories();
+        fetchItems();
     }, [username, type]);
 
     const handleSearch = (term) => {
-        setSearchTerm(term.toLowerCase());
+        setSearchTerm(safeLower(term));
         if (onSearch) onSearch(term);
     };
 
-
     const filteredItems = items
-        .filter(item => item.title.toLowerCase().includes(searchTerm))
+        .filter(item => safeLower(item.title).includes(searchTerm))
         .filter(item => {
-            // Hide drafts for other users
-            if (!isOwnProfile && item.status.toLowerCase() === "draft") return false;
+            // Drafts niet tonen als je niet de eigenaar bent
+            if (!isOwnProfile && safeLower(item.status) === "draft") return false;
             return true;
         });
 
-    const handleViewStory = (storyId) => {
-        navigate(`/read/${storyId}`);
-    };
+    const handleViewStory = (storyId) => navigate(`/read/${storyId}`);
 
     return (
         <section className="content-section">
@@ -78,7 +75,9 @@ export default function ContentSection({ title, username, type, onSearch, user }
                             {filteredItems.map((item) => (
                                 <div
                                     key={item.id}
-                                    className={`content-item ${isOwnProfile && item.status.toLowerCase() === "draft" ? "draft" : ""}`}
+                                    className={`content-item ${
+                                        isOwnProfile && safeLower(item.status) === "draft" ? "draft" : ""
+                                    }`}
                                 >
                                     <img
                                         src={item.coverImage ? `http://localhost:8081${item.coverImage}` : placeholderCover}
@@ -87,7 +86,7 @@ export default function ContentSection({ title, username, type, onSearch, user }
                                     />
                                     <p className="story-title">
                                         {item.title || "Geen titel"}
-                                        {isOwnProfile && item.status.toLowerCase() === "draft" && (
+                                        {isOwnProfile && safeLower(item.status) === "draft" && (
                                             <span className="draft-badge">Draft</span>
                                         )}
                                     </p>

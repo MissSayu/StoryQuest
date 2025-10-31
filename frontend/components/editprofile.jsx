@@ -16,7 +16,6 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
     );
     const [saving, setSaving] = useState(false);
 
-
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -26,7 +25,6 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
         }
     };
 
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -34,32 +32,50 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
         try {
             let avatarUrl = user.avatarUrl || "/avatars/default.jpg";
 
-
+            // Upload avatar if a new file is selected
             if (avatarFile) {
                 const formData = new FormData();
                 formData.append("file", avatarFile);
 
+                const token = localStorage.getItem("token");
                 const uploadRes = await fetch(
                     `http://localhost:8081/api/upload/avatar/${user.id}`,
-                    { method: "POST", body: formData }
+                    {
+                        method: "POST",
+                        body: formData,
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    }
                 );
 
-                if (!uploadRes.ok) throw new Error("Upload failed");
+                if (!uploadRes.ok) {
+                    const errText = await uploadRes.text();
+                    console.error("Avatar upload failed:", errText);
+                    throw new Error("Avatar upload failed");
+                }
 
                 const data = await uploadRes.json();
                 avatarUrl = data.avatarUrl ? `http://localhost:8081${data.avatarUrl}` : avatarPlaceholder;
             }
 
+            // Update user profile
+            const token = localStorage.getItem("token");
             const updateRes = await fetch(
                 `http://localhost:8081/api/users/${user.id}/update`,
                 {
                     method: "PUT",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token ? `Bearer ${token}` : "",
+                    },
                     body: JSON.stringify({ username, bio, avatarUrl }),
                 }
             );
 
-            if (!updateRes.ok) throw new Error("Could not update profile");
+            if (!updateRes.ok) {
+                const errText = await updateRes.text();
+                console.error("Profile update failed:", errText);
+                throw new Error("Could not update profile");
+            }
 
             const updatedUser = await updateRes.json();
             onSave(updatedUser); // Return updated user

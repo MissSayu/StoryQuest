@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import searchIcon from "../assets/search-icon.png";
 import "./searchbar.css";
 import { useNavigate } from "react-router-dom";
+import api from "../../src/api";
 
 export default function SearchBar({ placeholder = "Zoeken..." }) {
     const [q, setQ] = useState("");
@@ -20,27 +21,34 @@ export default function SearchBar({ placeholder = "Zoeken..." }) {
 
     useEffect(() => {
         if (!q) return setSuggestions([]);
+
         async function fetchSuggestions() {
             try {
-                const res = await fetch(`http://localhost:8081/api/search?q=${encodeURIComponent(q)}`);
-                if (!res.ok) return;
-                const data = await res.json();
+                // ✅ Gebruik Axios met JWT (via api.jsx)
+                const res = await api.get(`/search?q=${encodeURIComponent(q)}`);
+                const data = res.data;
 
-
-                const publishedStories = (data.stories || []).filter(s => s.status === "published");
-                const publishedEpisodes = (data.episodes || []).filter(e => e.status === "published");
+                // ✅ Filter enkel gepubliceerde verhalen/episodes
+                const publishedStories = (data.stories || []).filter(
+                    (s) => s.status === "published"
+                );
+                const publishedEpisodes = (data.episodes || []).filter(
+                    (e) => e.status === "published"
+                );
 
                 const combined = [
                     ...publishedStories,
                     ...publishedEpisodes,
-                    ...(data.users || [])
+                    ...(data.users || []),
                 ];
-                setSuggestions(combined.slice(0, 5)); // top 5
+
+                setSuggestions(combined.slice(0, 5)); // top 5 resultaten
                 setShowDropdown(true);
             } catch (err) {
-                console.error(err);
+                console.error("❌ Fout bij ophalen zoekresultaten:", err);
             }
         }
+
         fetchSuggestions();
     }, [q]);
 
@@ -73,7 +81,9 @@ export default function SearchBar({ placeholder = "Zoeken..." }) {
                         <div
                             key={idx}
                             className="suggestion-item"
-                            onClick={() => handleClickSuggestion(item.title || item.username)}
+                            onClick={() =>
+                                handleClickSuggestion(item.title || item.username)
+                            }
                         >
                             {item.title || item.username}
                         </div>

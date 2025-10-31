@@ -7,6 +7,7 @@ import Button from "../components/button.jsx";
 import GenreDropdown from "../components/genredropdown.jsx";
 import "../styles/publish.css";
 import PickStoryDropdown from "../components/pickstorydropdown";
+import api from "../../src/api";
 
 export default function PublishPage({ user: initialUser, logout, isMod }) {
     const [user, setUser] = useState(
@@ -27,17 +28,13 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
     const [userStories, setUserStories] = useState([]);
     const [selectedStoryId, setSelectedStoryId] = useState("");
 
-
+    // 🧠 Fetch user info (via beveiligde API)
     useEffect(() => {
         if (user || !initialUser || typeof initialUser === "object") return;
 
         const fetchUserData = async () => {
             try {
-                const res = await fetch(
-                    `http://localhost:8081/api/users/username/${initialUser}`
-                );
-                if (!res.ok) throw new Error(`User not found: ${res.status}`);
-                const data = await res.json();
+                const { data } = await api.get(`/users/username/${initialUser}`);
                 setUser(data);
             } catch (err) {
                 console.error("Failed to fetch user:", err);
@@ -52,20 +49,16 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         if (!user) return;
         const fetchStories = async () => {
             try {
-                const res = await fetch(
-                    `http://localhost:8081/api/stories/user/${user.id}`
-                );
-                if (!res.ok) throw new Error("Failed to fetch stories");
-                const data = await res.json();
+                const { data } = await api.get(`/stories/user/${user.id}`);
                 setUserStories(data);
             } catch (err) {
-                console.error(err);
+                console.error("Failed to fetch stories:", err);
             }
         };
         fetchStories();
     }, [user]);
 
-
+    // 🖼️ Preview cover image
     useEffect(() => {
         if (!cover) {
             setCoverPreview(null);
@@ -78,6 +71,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         return () => URL.revokeObjectURL(objectUrl);
     }, [cover]);
 
+
     const handleCoverUpload = (e) => {
         if (e.target.files[0]) setCover(e.target.files[0]);
     };
@@ -86,6 +80,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
         if (e.target.files[0]) setFile(e.target.files[0]);
     };
 
+    // 💾 Opslaan of publiceren
     const saveStory = async (status) => {
         if (!user) return alert("User data not loaded yet!");
         if (
@@ -112,49 +107,40 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
             formData.append("userId", user.id);
             formData.append("status", status);
 
-            // Story content
             if (mode === "newStory" && type === "story") {
                 formData.append("storyContent", storyContent || "");
             }
 
-            // New episode content
             if (mode === "newEpisode" && type === "story") {
                 formData.append("storyId", selectedStoryId);
                 formData.append("storyContent", newEpisodeContent || "");
             }
 
-            // Cover image
             if (cover) formData.append("coverImage", cover);
 
-            // Step 1️⃣: Create story/episode
-            const response = await fetch("http://localhost:8081/api/stories/create", {
-                method: "POST",
-                body: formData,
-            });
+            // 🔐 Beveiligde API-aanroep
+            const { data: savedStoryOrEpisode } = await api.post(
+                "/stories/create",
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
 
-            if (!response.ok) throw new Error("Failed to save story/episode");
-
-            const savedStoryOrEpisode = await response.json();
             console.log(
                 `${status === "draft" ? "Draft" : "Published"} saved:`,
                 savedStoryOrEpisode
             );
 
-            // Step 2️⃣: Upload comic file if it's a comic
+            // 📁 Upload comic file indien nodig
             if (type === "comic" && file) {
                 const comicForm = new FormData();
-                comicForm.append("file", file); // must match backend's @RequestParam("file")
+                comicForm.append("file", file);
 
-                // If you just created a new comic story, savedStoryOrEpisode.id should be episode ID
-                const uploadRes = await fetch(
-                    `http://localhost:8081/api/episodes/${savedStoryOrEpisode.id}/uploadComic`,
-                    {
-                        method: "POST",
-                        body: comicForm,
-                    }
+                await api.post(
+                    `/episodes/${savedStoryOrEpisode.id}/uploadComic`,
+                    comicForm,
+                    { headers: { "Content-Type": "multipart/form-data" } }
                 );
 
-                if (!uploadRes.ok) throw new Error("Failed to upload comic file");
                 console.log("Comic uploaded successfully!");
             }
 
@@ -164,7 +150,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                     : "Verhaal/comic gepubliceerd!"
             );
 
-            // Reset all fields
+            // Reset form
             setTitle("");
             setDescription("");
             setStoryContent("");
@@ -173,13 +159,11 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
             setCover(null);
             setFile(null);
             setSelectedStoryId("");
-
         } catch (err) {
             console.error(err);
             alert("Er is iets misgegaan bij opslaan: " + err.message);
         }
     };
-
 
     const handlePublish = () => saveStory("published");
     const handleSaveDraft = () => saveStory("draft");
@@ -213,7 +197,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                                 : "Nieuw Hoofdstuk"}
                         </h2>
 
-
+                        {/* Mode selector */}
                         <div className="row type-selector">
                             <label>
                                 <input
@@ -235,7 +219,7 @@ export default function PublishPage({ user: initialUser, logout, isMod }) {
                             </label>
                         </div>
 
-
+                        {/* Type selector */}
                         <div className="row type-selector">
                             <label>
                                 <input

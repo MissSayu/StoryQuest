@@ -12,7 +12,8 @@ import PublishPage from "../frontend/pages/Publishpage.jsx";
 import ReadPage from "../frontend/pages/ReadPage.jsx";
 import SearchResultsPage from "../frontend/pages/Seachpage";
 
-// Wrap App in a Router-aware component to use navigate
+import api from "./api";
+
 function AppWrapper() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
@@ -20,20 +21,20 @@ function AppWrapper() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const token = localStorage.getItem("token");
         const storedUsername = localStorage.getItem("username");
 
         async function fetchUser() {
-            if (storedUsername) {
+            if (token && storedUsername) {
                 try {
-                    const res = await fetch(`http://localhost:8081/api/users/username/${storedUsername}`);
-                    if (!res.ok) throw new Error("Failed to fetch user");
-                    const data = await res.json();
-                    setUser(data);
-                    setIsMod(data.role === "MOD");
+                    // gebruik axios instance, headers worden automatisch toegevoegd
+                    const res = await api.get(`/users/username/${storedUsername}`);
+                    setUser(res.data);
+                    setIsMod(res.data.role === "MOD");
                 } catch (err) {
                     console.error("Failed to load user:", err);
-                    setUser(null);
-                    setIsMod(false);
+                    // token niet geldig? logout en clear localStorage
+                    logout(true);
                 }
             }
             setLoading(false);
@@ -42,15 +43,16 @@ function AppWrapper() {
         fetchUser();
     }, []);
 
-    function logout() {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        localStorage.removeItem("isMod");
+    function logout(clearToken = true) {
+        if (clearToken) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            localStorage.removeItem("isMod");
+        }
 
         setUser(null);
         setIsMod(false);
-
-        navigate("/", { replace: true }); // React Router navigation
+        navigate("/", { replace: true });
     }
 
     if (loading) return <p>⏳ Gebruiker laden...</p>;

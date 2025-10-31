@@ -6,6 +6,7 @@ import profileIcon from "../assets/person-icon.png";
 import settingsIcon from "../assets/settings-icon.png";
 import "./sidebarmenu.css";
 import Button from "../components/button.jsx";
+import api from "../../src/api"; // axios instance met JWT
 
 function ProfileSidebar({
                             user,
@@ -22,42 +23,43 @@ function ProfileSidebar({
     const bio = viewedUser?.bio || "Nog geen bio beschikbaar.";
 
     const [profileImg, setProfileImg] = useState(avatarPlaceholder);
+    const [isFollowing, setIsFollowing] = useState(false);
 
+    // Update profielafbeelding
     useEffect(() => {
         const url = viewedUser?.avatarUrl;
         setProfileImg(url ? (url.startsWith("http") ? url : `http://localhost:8081${url}`) : avatarPlaceholder);
     }, [viewedUser?.avatarUrl]);
 
-
-    const [isFollowing, setIsFollowing] = useState(false);
-
+    // Check of de ingelogde gebruiker de auteur volgt
     useEffect(() => {
         if (!author || !user || author.id === user.id) return;
 
-        async function checkFollowStatus() {
+        const checkFollowStatus = async () => {
             try {
-                const res = await fetch(
-                    `http://localhost:8081/api/follow/${user.id}/isFollowing/${author.id}`
-                );
-                setIsFollowing(res.ok ? Boolean(await res.json()) : false);
+                const res = await api.get(`/follow/${user.id}/isFollowing/${author.id}`);
+                setIsFollowing(res.data);
             } catch (err) {
                 console.error("Error checking follow status:", err);
             }
-        }
+        };
         checkFollowStatus();
     }, [author, user]);
 
+    // Volg/ontvolg auteur
     const toggleFollowAuthor = async () => {
         if (!user || !author) {
             alert("Je moet ingelogd zijn om een auteur te volgen.");
             return;
         }
+
         try {
             const action = isFollowing ? "unfollowAuthor" : "followAuthor";
-            const res = await fetch(`http://localhost:8081/api/follow/${user.id}/${action}/${author.id}`, { method: "POST" });
-            if (res.ok) setIsFollowing(!isFollowing);
+            await api.post(`/follow/${user.id}/${action}/${author.id}`);
+            setIsFollowing(!isFollowing);
         } catch (err) {
             console.error("Fout bij volgen/ontvolgen:", err);
+            alert("Kon auteur niet volgen. Controleer of je bent ingelogd.");
         }
     };
 

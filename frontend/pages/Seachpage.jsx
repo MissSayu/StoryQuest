@@ -4,6 +4,7 @@ import Logo from "../components/Logo";
 import AvatarMenu from "../components/Avatar";
 import Navbar from "../components/Navbar.jsx";
 import "../styles/searchpage.css";
+import api from "../../src/api";
 
 function useQuery() {
     return new URLSearchParams(useLocation().search);
@@ -19,13 +20,15 @@ export default function SearchResultsPage({ user, logout, isMod, handleSearch })
 
         async function fetchResults() {
             try {
-                const res = await fetch(`http://localhost:8081/api/search?q=${encodeURIComponent(query)}`);
-                if (!res.ok) throw new Error("Search failed");
-                const data = await res.json();
 
-                // Only include published stories and episodes
-                const publishedStories = (data.stories || []).filter(story => story.status === "published");
-                const publishedEpisodes = (data.episodes || []).filter(ep => ep.status === "published");
+                const res = await api.get(`/search?q=${encodeURIComponent(query)}`);
+                const data = res.data;
+                const publishedStories = (data.stories || []).filter(
+                    (story) => story.status === "published"
+                );
+                const publishedEpisodes = (data.episodes || []).filter(
+                    (ep) => ep.status === "published"
+                );
 
                 setResults({
                     stories: publishedStories,
@@ -33,7 +36,7 @@ export default function SearchResultsPage({ user, logout, isMod, handleSearch })
                     episodes: publishedEpisodes,
                 });
             } catch (err) {
-                console.error(err);
+                console.error("❌ Fout bij laden van zoekresultaten:", err);
             }
         }
 
@@ -55,7 +58,7 @@ export default function SearchResultsPage({ user, logout, isMod, handleSearch })
                     <>
                         <h3>Verhalen</h3>
                         <div className="grid stories-grid">
-                            {results.stories.map(story => (
+                            {results.stories.map((story) => (
                                 <div
                                     key={story.id}
                                     className="book-card"
@@ -82,14 +85,18 @@ export default function SearchResultsPage({ user, logout, isMod, handleSearch })
                     <>
                         <h3>Episodes</h3>
                         <div className="grid episodes-grid">
-                            {results.episodes.map(ep => (
+                            {results.episodes.map((ep) => (
                                 <div
                                     key={ep.id}
                                     className="episode-card"
                                     onClick={() => navigate(`/read/${ep.storyId}#${ep.id}`)}
                                 >
                                     <img
-                                        src={ep.coverUrl ? `http://localhost:8081${ep.coverUrl}` : `http://localhost:8081${ep.storyCoverImage}`}
+                                        src={
+                                            ep.coverUrl
+                                                ? `http://localhost:8081${ep.coverUrl}`
+                                                : `http://localhost:8081${ep.storyCoverImage}`
+                                        }
                                         alt={ep.title}
                                         className="episode-cover"
                                     />
@@ -100,18 +107,25 @@ export default function SearchResultsPage({ user, logout, isMod, handleSearch })
                     </>
                 )}
 
+                {/* 👤 Gebruikers */}
                 {results.users.length > 0 && (
                     <>
                         <h3>Gebruikers</h3>
                         <div className="grid users-grid">
-                            {results.users.map(u => (
+                            {results.users.map((u) => (
                                 <div
                                     key={u.id}
                                     className="user-card"
                                     onClick={() => navigate(`/profile/${u.username}`)}
                                 >
                                     <img
-                                        src={u.avatarUrl || "http://localhost:8081/avatars/default.jpg"}
+                                        src={
+                                            u.avatarUrl
+                                                ? u.avatarUrl.startsWith("http")
+                                                    ? u.avatarUrl
+                                                    : `http://localhost:8081${u.avatarUrl}`
+                                                : "http://localhost:8081/avatars/default.jpg"
+                                        }
                                         alt={u.username}
                                         className="user-avatar"
                                     />

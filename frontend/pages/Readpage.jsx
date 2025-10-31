@@ -7,6 +7,7 @@ import Navbar from "../components/Navbar";
 import Button from "../components/button.jsx";
 import ProfileSidebar from "../components/sidemenu.jsx";
 import CommentSection from "../components/CommentSection";
+import api from "../../src/api"; // axios instance met JWT
 
 function ReadPage({ user, logout, isMod }) {
     const { storyId } = useParams();
@@ -14,16 +15,18 @@ function ReadPage({ user, logout, isMod }) {
     const [story, setStory] = useState(null);
     const [selectedEpisode, setSelectedEpisode] = useState(null);
     const [isFollowingStory, setIsFollowingStory] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // 🟣 Load story
     useEffect(() => {
         if (!storyId) return;
 
-        async function fetchStory() {
+        const fetchStory = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                const res = await fetch(`http://localhost:8081/api/stories/${storyId}`);
-                if (!res.ok) throw new Error("Story not found");
-                const data = await res.json();
+                const res = await api.get(`/stories/${storyId}`);
+                const data = res.data;
                 setStory(data);
 
                 document.title = `${data.title} - Tales of Eyrndor`;
@@ -36,59 +39,55 @@ function ReadPage({ user, logout, isMod }) {
                 });
             } catch (err) {
                 console.error("Failed to fetch story:", err);
+                setError(err.response?.status === 403 ? "Toegang geweigerd" : "Verhaal niet gevonden");
+            } finally {
+                setLoading(false);
             }
-        }
+        };
 
         fetchStory();
     }, [storyId]);
 
-    // 🟣 Update browser tab title dynamically
     useEffect(() => {
         if (story && selectedEpisode) {
             document.title = `${story.title} — ${selectedEpisode.title} | Tales of Eyrndor`;
         }
     }, [selectedEpisode, story]);
 
-    // 🟣 Check if user is following this story
     useEffect(() => {
-        async function fetchFollowState() {
-            if (!user || !storyId) return;
+        if (!user || !storyId) return;
+
+        const fetchFollowState = async () => {
             try {
-                const res = await fetch(
-                    `http://localhost:8081/api/follow/check?followerId=${user.id}&followedStoryId=${storyId}`
-                );
-                if (res.ok) {
-                    const followed = await res.json();
-                    setIsFollowingStory(followed);
-                }
+                const res = await api.get(`/follow/check?followerId=${user.id}&followedStoryId=${storyId}`);
+                setIsFollowingStory(res.data);
             } catch (err) {
                 console.error("Failed to check story follow state:", err);
             }
-        }
+        };
+
         fetchFollowState();
     }, [user, storyId]);
 
-    // 🟣 Follow/unfollow story
     const toggleFollowStory = async () => {
         if (!user) return;
         try {
-            const url = `http://localhost:8081/api/follow/${user.id}/${isFollowingStory ? "unfollow" : "follow"}/${storyId}`;
-            const res = await fetch(url, { method: "POST" });
-            if (res.ok) setIsFollowingStory(!isFollowingStory);
+            const url = `/follow/${user.id}/${isFollowingStory ? "unfollow" : "follow"}/${storyId}`;
+            await api.post(url);
+            setIsFollowingStory(!isFollowingStory);
         } catch (err) {
             console.error("Error toggling story follow:", err);
         }
     };
 
-    // 🟣 Handle logout
     const handleLogout = () => {
         if (logout) logout();
         navigate("/", { replace: true });
     };
 
-    if (!story) return <p>Loading story...</p>;
+    if (loading) return <p style={{ margin: "15px" }}>Laden...</p>;
+    if (error) return <p style={{ margin: "15px", color: "red" }}>{error}</p>;
 
-    // 🟣 Always ensure Description is first in the list
     const hasDescriptionEpisode = story.episodes?.some(
         (ep) => ep.episodeOrder === 0 || ep.title.toLowerCase() === "description"
     );
@@ -106,12 +105,10 @@ function ReadPage({ user, logout, isMod }) {
             ...(story.episodes || []),
         ];
 
-    // ✅ Always sort episodes by order so Description stays on top
     sidebarEpisodes = sidebarEpisodes.sort(
         (a, b) => (a.episodeOrder ?? 999) - (b.episodeOrder ?? 999)
     );
 
-    // 🟣 Safe cover URL handling
     const coverSrc = selectedEpisode?.coverUrl
         ? selectedEpisode.coverUrl.startsWith("http")
             ? selectedEpisode.coverUrl
