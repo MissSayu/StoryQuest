@@ -20,7 +20,6 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
         const file = e.target.files[0];
         if (file) {
             setAvatarFile(file);
-            // Show local preview immediately
             setPreview(URL.createObjectURL(file));
         }
     };
@@ -32,7 +31,6 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
         try {
             let avatarUrl = user.avatarUrl || "/avatars/default.jpg";
 
-            // Upload avatar if a new file is selected
             if (avatarFile) {
                 const formData = new FormData();
                 formData.append("file", avatarFile);
@@ -57,7 +55,7 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
                 avatarUrl = data.avatarUrl ? `http://localhost:8081${data.avatarUrl}` : avatarPlaceholder;
             }
 
-            // Update user profile
+
             const token = localStorage.getItem("token");
             const updateRes = await fetch(
                 `http://localhost:8081/api/users/${user.id}/update`,
@@ -78,7 +76,7 @@ export default function EditProfileForm({ user, onSave, onCancel }) {
             }
 
             const updatedUser = await updateRes.json();
-            onSave(updatedUser); // Return updated user
+            onSave(updatedUser);
         } catch (err) {
             console.error("Error updating profile:", err);
             alert("Something went wrong while saving.");
